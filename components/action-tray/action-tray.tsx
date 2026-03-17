@@ -1,9 +1,9 @@
 import React, {
   useCallback,
-  useImperativeHandle,
   useMemo,
   forwardRef,
   useState,
+  useEffect,
 } from "react";
 import {
   StyleProp,
@@ -11,11 +11,7 @@ import {
   ViewStyle,
   LayoutChangeEvent,
 } from "react-native";
-import {
-  Gesture,
-  GestureDetector,
-  ScrollView,
-} from "react-native-gesture-handler";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   Easing,
   LinearTransition,
@@ -24,25 +20,25 @@ import Animated, {
   useDerivedValue,
   useSharedValue,
   withSpring,
-  withTiming,
 } from "react-native-reanimated";
-import { useAnimatedKeyboard } from "react-native-reanimated";
 import { Backdrop } from "./backdrop";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   BORDER_RADIUS,
   HORIZONTAL_MARGIN,
   MORPH_DURATION,
-  PADDING,
   SCREEN_HEIGHT,
+  TRAY_VERTICAL_PADDING,
 } from "./constants";
 
 type ActionTrayProps = {
+  visible: boolean;
   style?: StyleProp<ViewStyle>;
-  onClose?: () => void;
+  onClose: () => void;
   index?: number;
   content?: React.ReactNode;
   footer?: React.ReactNode;
+  trayKey?: string;
 };
 
 export type ActionTrayRef = {
@@ -52,26 +48,46 @@ export type ActionTrayRef = {
 };
 
 const ActionTray = forwardRef<ActionTrayRef, ActionTrayProps>(
-  ({ style, onClose, content, footer, index }, ref) => {
+  ({ style, onClose, content, footer, index, trayKey, visible }, ref) => {
     const translateY = useSharedValue(SCREEN_HEIGHT);
     const contentHeight = useSharedValue(0);
     const footerHeight = useSharedValue(0);
     const active = useSharedValue(false);
-    const isClosing = useSharedValue(false);
     const context = useSharedValue({ y: 0 });
-    const keyboard = useAnimatedKeyboard();
     const [layoutEnabled, setLayoutEnabled] = useState(false);
-    const [isClosingJS, setIsClosingJS] = useState(false);
-
     const { bottom } = useSafeAreaInsets();
+
+    const [renderedFooter, setRenderedFooter] = useState<React.ReactNode>(footer);
+    const [renderedContent, setRenderedContent] = useState<React.ReactNode>(content);
+    const [renderedTrayKey, setRenderedTrayKey] = useState<string | undefined>(trayKey);
+
+
+    const shouldReset = useSharedValue(false);
+
+
+    useEffect(() => {
+      if (visible) {
+        setRenderedContent(content);
+        setRenderedFooter(footer);
+        setRenderedTrayKey(trayKey);
+      }
+    }, [visible]); 
+
+
+    useEffect(() => {
+      if (visible && content) setRenderedContent(content);
+    }, [content]);
+
+    useEffect(() => {
+      if (visible && footer) setRenderedFooter(footer);
+    }, [footer]);
 
     const totalHeight = useDerivedValue(() => {
       return contentHeight.value + bottom;
     });
 
     const progress = useDerivedValue(() => {
-      const height = totalHeight.value || SCREEN_HEIGHT;
-      return 1 - translateY.value / height;
+      return 1 - translateY.value / SCREEN_HEIGHT;
     });
 
     const heightEasing = Easing.bezier(0.26, 1, 0.5, 1).factory();
@@ -83,9 +99,7 @@ const ActionTray = forwardRef<ActionTrayRef, ActionTrayProps>(
 
     const scrollTo = useCallback((destination: number) => {
       "worklet";
-
       active.value = destination !== SCREEN_HEIGHT;
-
       translateY.value = withSpring(destination, {
         damping: 50,
         stiffness: 400,
@@ -93,70 +107,73 @@ const ActionTray = forwardRef<ActionTrayRef, ActionTrayProps>(
       });
     }, []);
 
-    const close = useCallback(() => {
-      "worklet";
-      isClosing.value = true;
-      runOnJS(setIsClosingJS)(true);
-      scrollTo(SCREEN_HEIGHT);
-    }, [scrollTo]);
+    const handleClose = useCallback(() => {
+      onClose?.();
+    }, [onClose]);
 
-    useImperativeHandle(
-      ref,
-      () => ({
-        open: () => {
-          "worklet";
+    const resetContent = useCallback(() => {
+      setRenderedContent(null);
+      setRenderedFooter(null);
+      setRenderedTrayKey(undefined);
+    }, []);
 
-          isClosing.value = false;
-          runOnJS(setIsClosingJS)(false);
+    useEffect(() => {
+      if (visible) {
 
-          // runOnJS(Haptics.selectionAsync)();
-          scrollTo(0);
-        },
-        close,
-        isActive: () => {
-          return active.value;
-        },
-      }),
-      [close, scrollTo],
-    );
+        shouldReset.value = false;
 
-    const gesture = Gesture.Pan()
-      .onStart(() => {
-        context.value = { y: translateY.value };
-      })
-      .onUpdate((e) => {
-        if (e.translationY >= 0) {
-          translateY.value = e.translationY + context.value.y;
-        }
-      })
-      .onEnd((e) => {
-        const projectedEnd = translateY.value + e.velocityY / 60;
-        const shouldClose =
-          projectedEnd > totalHeight.value * 0.5 || e.velocityY > 1000;
-
-        if (shouldClose) {
-          if (onClose) runOnJS(onClose)();
-          else close();
-        } else {
-          scrollTo(0);
-        }
-      });
-
-    const keyboardOffset = useDerivedValue(() => {
-      return keyboard.height.value;
-    });
-    const rTrayStyle = useAnimatedStyle(() => {
-      return {
-        transform: [
-          {
-            translateY: translateY.value - keyboardOffset.value,
+        translateY.value = withSpring(
+          0,
+          { damping: 50, stiffness: 400, mass: 0.8 },
+          () => {
+            runOnJS(setLayoutEnabled)(true);
           },
-        ],
-      };
-    });
+        );
+        active.value = true;
+      } else {
+        runOnJS(setLayoutEnabled)(false);
+        active.value = false;
+
+        shouldReset.value = true;
+        translateY.value = withSpring(
+          SCREEN_HEIGHT,
+          { damping: 50, stiffness: 400, mass: 0.8 },
+          () => {
+           
+            if (shouldReset.value) {
+              runOnJS(resetContent)();
+            }
+          },
+        );
+      }
+    }, [visible]);
+
+    const gesture = useMemo(() => {
+      return Gesture.Pan()
+        .onStart(() => {
+          context.value = { y: translateY.value };
+        })
+        .onUpdate((e) => {
+          if (e.translationY >= 0) {
+            translateY.value = e.translationY + context.value.y;
+          }
+        })
+        .onEnd((e) => {
+          const projectedEnd = translateY.value + e.velocityY / 60;
+          const shouldClose =
+            projectedEnd > totalHeight.value * 0.5 || e.velocityY > 1000;
+
+          if (shouldClose) {
+            runOnJS(handleClose)();
+          } else {
+            scrollTo(0);
+          }
+        });
+    }, [handleClose, scrollTo]);
+
     const rFooterSpacerStyle = useAnimatedStyle(() => {
       return {
-        height: footer ? footerHeight.value : 0,
+        height: renderedFooter ? footerHeight.value : 0,
       };
     });
 
@@ -164,62 +181,46 @@ const ActionTray = forwardRef<ActionTrayRef, ActionTrayProps>(
       transform: [{ translateY: translateY.value }],
     }));
 
-    const rKeyboardStyle = useAnimatedStyle(() => ({
-      transform: [{ translateY: -keyboardOffset.value }],
-    }));
-
     const handleLayout = (e: LayoutChangeEvent) => {
-      const h = e.nativeEvent.layout.height;
-      contentHeight.value = h;
-
-      if (!layoutEnabled && h > 0) setLayoutEnabled(true);
+      contentHeight.value = e.nativeEvent.layout.height;
     };
 
     const handleFooterLayout = (e: LayoutChangeEvent) => {
       footerHeight.value = e.nativeEvent.layout.height;
     };
 
-    const shouldUseLayoutAnimation = layoutEnabled && !isClosingJS;
-
     return (
       <>
-        <Backdrop
-          onTap={onClose ?? close}
-          isActive={active}
-          progress={progress}
-        />
+        <Backdrop onTap={handleClose} isActive={active} progress={progress} />
 
-        <Animated.View style={rKeyboardStyle}>
-          <GestureDetector gesture={gesture}>
-            <Animated.View
-              style={[styles.container, { bottom }, rDragStyle, style]}
-              layout={
-                shouldUseLayoutAnimation ? layoutAnimationConfig : undefined
-              }
-              onLayout={handleLayout}
-            >
-              <Animated.View style={styles.content}>
-                <Animated.View key={`step-${index}`}>{content}</Animated.View>
-                <Animated.View style={rFooterSpacerStyle} />
+        <GestureDetector gesture={gesture}>
+          <Animated.View
+            style={[styles.container, { bottom }, rDragStyle, style]}
+            layout={layoutEnabled ? layoutAnimationConfig : undefined}
+            onLayout={handleLayout}
+          >
+            <Animated.View style={styles.content}>
+             
+              <Animated.View key={renderedTrayKey}>
+                {renderedContent}
               </Animated.View>
-            </Animated.View>
-          </GestureDetector>
-        </Animated.View>
-
-        {footer && (
-          <Animated.View style={rKeyboardStyle}>
-            <Animated.View
-              onLayout={handleFooterLayout}
-              style={[
-                styles.footer,
-                { bottom, left: HORIZONTAL_MARGIN, right: HORIZONTAL_MARGIN },
-                rDragStyle,
-              ]}
-            >
-              {footer}
+              <Animated.View style={rFooterSpacerStyle} />
             </Animated.View>
           </Animated.View>
-        )}
+        </GestureDetector>
+
+        <Animated.View
+          onLayout={handleFooterLayout}
+          style={[
+            styles.footer,
+            { bottom, left: HORIZONTAL_MARGIN, right: HORIZONTAL_MARGIN },
+            rDragStyle,
+            { opacity: renderedFooter ? 1 : 0 },
+          ]}
+          pointerEvents={renderedFooter ? "auto" : "none"}
+        >
+          {renderedFooter ?? null}
+        </Animated.View>
       </>
     );
   },
@@ -236,13 +237,13 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   content: {
-    padding: PADDING,
+    padding: 0,
   },
   footer: {
     position: "absolute",
-    paddingHorizontal: PADDING,
+    paddingHorizontal: TRAY_VERTICAL_PADDING,
     paddingTop: 6,
-    paddingBottom: PADDING,
+    paddingBottom: TRAY_VERTICAL_PADDING,
     backgroundColor: "white",
     borderBottomLeftRadius: BORDER_RADIUS,
     borderBottomRightRadius: BORDER_RADIUS,

@@ -9,7 +9,6 @@ import Animated, {
 import { PressableScale } from "@/components/ui/utils/pressable-scale";
 import * as Haptics from "expo-haptics";
 
-
 const { width: windowWidth } = Dimensions.get("window");
 
 export const BUTTON_HEIGHT = 50;
@@ -25,6 +24,9 @@ type Props = {
   onNext: () => void;
   onFinish?: () => void;
   onSecondaryPress?: () => void;
+
+  /** NEW */
+  showSecondary?: boolean;
 };
 
 export const AnimatedOnboardingButton: React.FC<Props> = ({
@@ -33,17 +35,23 @@ export const AnimatedOnboardingButton: React.FC<Props> = ({
   onNext,
   onFinish,
   onSecondaryPress,
+  showSecondary,
 }) => {
   const isLastStep = step === totalSteps - 1;
-  const showSecondary = step > 0 && !isLastStep;
+
+  // If showSecondary prop is provided, use it.
+  // Otherwise fallback to previous logic.
+  const shouldShowSecondary =
+    showSecondary !== undefined
+      ? showSecondary
+      : step > 0 && !isLastStep;
 
   const progress = useDerivedValue(() =>
-    withSpring(showSecondary ? 1 : 0, {
+    withSpring(shouldShowSecondary ? 1 : 0, {
       stiffness: 1600,
       damping: 80,
     }),
   );
-
 
   const rPrimaryStyle = useAnimatedStyle(() => {
     const width = interpolate(
@@ -52,11 +60,8 @@ export const AnimatedOnboardingButton: React.FC<Props> = ({
       [BUTTON_WIDTH, MIN_BUTTON_WIDTH],
     );
 
-    return {
-      width,
-    };
+    return { width };
   });
-
 
   const rSecondaryStyle = useAnimatedStyle(() => ({
     opacity: progress.value,
@@ -67,10 +72,8 @@ export const AnimatedOnboardingButton: React.FC<Props> = ({
     ],
   }));
 
- const handlePrimaryPress = async () => {
+  const handlePrimaryPress = async () => {
     await Haptics.selectionAsync();
-
-    // if (isLastStep) onFinish();
     onNext();
   };
 
@@ -87,7 +90,7 @@ export const AnimatedOnboardingButton: React.FC<Props> = ({
         justifyContent: "center",
       }}
     >
-   
+      {/* Secondary */}
       <Animated.View
         style={[
           {
@@ -99,9 +102,10 @@ export const AnimatedOnboardingButton: React.FC<Props> = ({
           },
           rSecondaryStyle,
         ]}
+        pointerEvents={shouldShowSecondary ? "auto" : "none"}
       >
         <PressableScale
-      onPress={handleSecondaryPress}
+          onPress={handleSecondaryPress}
           style={{
             width: "100%",
             height: BUTTON_HEIGHT,
@@ -117,7 +121,7 @@ export const AnimatedOnboardingButton: React.FC<Props> = ({
         </PressableScale>
       </Animated.View>
 
-
+      {/* Primary */}
       <Animated.View
         style={[
           rPrimaryStyle,
@@ -134,14 +138,14 @@ export const AnimatedOnboardingButton: React.FC<Props> = ({
             width: "100%",
             height: BUTTON_HEIGHT,
             alignItems: "center",
-            backgroundColor: "#9896FF",
+            backgroundColor: "#41BBFF",
             borderRadius: 50,
             justifyContent: "center",
             paddingHorizontal: 20,
           }}
         >
           <Text className="text-white font-sfBold text-2xl">
-            {isLastStep ? "Finish" : "Continue"}
+            Continue
           </Text>
         </PressableScale>
       </Animated.View>

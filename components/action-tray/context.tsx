@@ -1,7 +1,7 @@
 import React, { createContext, useContext } from "react";
 
 export type TrayDefinition = {
-  contents: (() => React.ReactNode)[];
+  contents: ((stepKey?: string, skipEntering?: boolean) => React.ReactNode)[];
   footer?: () => React.ReactNode;
 };
 

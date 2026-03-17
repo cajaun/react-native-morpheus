@@ -1,9 +1,4 @@
-import React, {
-  useMemo,
-  useEffect,
-  useRef,
-  useId,
-} from "react";
+import React, { useMemo, useEffect, useRef, useId } from "react";
 import { useTray } from "./context";
 
 const TrayScopeContext = React.createContext<string | null>(null);
@@ -16,17 +11,12 @@ type TrayRootProps = {
   children: React.ReactNode;
 };
 
-export const TrayRoot: React.FC<TrayRootProps> = ({
-  children,
-}) => {
+export const TrayRoot: React.FC<TrayRootProps> = ({ children }) => {
   const { registerTray } = useTray();
 
   const reactId = useId();
 
-  const trayId = useMemo(
-    () => `tray-${reactId}`,
-    [reactId]
-  );
+  const trayId = useMemo(() => `tray-${reactId}`, [reactId]);
   const parsed = useMemo(() => {
     const outsideNodes: React.ReactNode[] = [];
     const contentFactories: (() => React.ReactNode)[] = [];
@@ -41,7 +31,9 @@ export const TrayRoot: React.FC<TrayRootProps> = ({
       const name = (child.type as any)?.displayName;
 
       if (name === "TrayContent") {
-        contentFactories.push(() => child);
+        contentFactories.push((stepKey?: string, skipEntering?: boolean) =>
+          React.cloneElement(child, { stepKey, skipEntering }),
+        );
         return;
       }
 

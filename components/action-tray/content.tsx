@@ -8,14 +8,14 @@ import { MORPH_DURATION } from "./constants";
 
 type Props = {
   children: React.ReactNode;
-  transitionKey?: string | number;
   scale?: boolean;
+  stepKey?: string;
+  skipEntering?: boolean;
 };
 
 const createMorphEntering = (scale: boolean): EntryExitAnimationFunction => {
   return () => {
     "worklet";
-
     return {
       initialValues: {
         opacity: 0,
@@ -52,7 +52,6 @@ const createMorphEntering = (scale: boolean): EntryExitAnimationFunction => {
 const createMorphExiting = (scale: boolean): EntryExitAnimationFunction => {
   return () => {
     "worklet";
-
     return {
       initialValues: {
         opacity: 1,
@@ -88,12 +87,14 @@ const createMorphExiting = (scale: boolean): EntryExitAnimationFunction => {
 
 export const TrayContent: React.FC<Props> = ({
   children,
-  transitionKey,
   scale = true,
+  stepKey,
+  skipEntering = false,
 }) => {
   return (
     <Animated.View
-      entering={createMorphEntering(scale)}
+      key={stepKey}
+      entering={skipEntering ? undefined : createMorphEntering(scale)}
       exiting={createMorphExiting(scale)}
     >
       {children}

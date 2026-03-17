@@ -1,32 +1,25 @@
 import React, {
   useMemo,
-  useRef,
   useState,
   useCallback,
   useEffect,
 } from "react";
-import {
-  ActionTray,
-  ActionTrayRef,
-} from "@/components/action-tray/action-tray";
+import { ActionTray } from "@/components/action-tray/action-tray";
 import { TrayContext, TrayDefinition } from "./context";
 
 export const TrayProvider: React.FC<{
   children: React.ReactNode;
 }> = ({ children }) => {
-  const trayRef = useRef<ActionTrayRef>(null);
-  const focusableRef =
-    useRef<React.RefObject<any> | null>(null);
-
   const [registry, setRegistry] =
-    useState<Record<string, TrayDefinition>>(
-      {},
-    );
+    useState<Record<string, TrayDefinition>>({});
 
   const [activeTrayId, setActiveTrayId] =
     useState<string | null>(null);
 
   const [index, setIndex] = useState(0);
+
+  // true only on the very first render after openTray is called
+  const [justOpened, setJustOpened] = useState(false);
 
   const registerTray = useCallback(
     (id: string, def: TrayDefinition) => {
@@ -35,30 +28,25 @@ export const TrayProvider: React.FC<{
         return { ...prev, [id]: def };
       });
     },
-    [],
+    []
   );
-
-  const registerFocusable = useCallback(
-    (ref: React.RefObject<any>) => {
-      focusableRef.current = ref;
-    },
-    [],
-  );
-
-  useEffect(() => {
-    if (!activeTrayId) return;
-    focusableRef.current?.current?.focus?.();
-  }, [index, activeTrayId]);
 
   const openTray = useCallback((id: string) => {
-    trayRef.current?.open();
     setIndex(0);
     setActiveTrayId(id);
+    setJustOpened(true);
   }, []);
 
   const close = useCallback(() => {
-    trayRef.current?.close();
+    setActiveTrayId(null);
+    setIndex(0);
   }, []);
+
+  // Reset justOpened after the first content render so step transitions
+  // still get their entering animation
+  useEffect(() => {
+    if (justOpened) setJustOpened(false);
+  }, [activeTrayId, index]);
 
   const activeTray = activeTrayId
     ? registry[activeTrayId]
@@ -67,9 +55,7 @@ export const TrayProvider: React.FC<{
   const total = activeTray?.contents.length ?? 0;
 
   const next = useCallback(() => {
-    setIndex((i) =>
-      Math.min(i + 1, total - 1),
-    );
+    setIndex((i) => Math.min(i + 1, total - 1));
   }, [total]);
 
   const back = useCallback(() => {
@@ -77,22 +63,12 @@ export const TrayProvider: React.FC<{
   }, []);
 
   const rawContent =
-    activeTray?.contents[index]?.() ?? null;
+    activeTray?.contents[index]?.(
+      `${activeTrayId}-${index}`,
+      justOpened  // ← skip the fade-in when the tray is first opening
+    ) ?? null;
 
-  const content = useMemo(() => {
-    if (!rawContent) return null;
-
-    return (
-      <React.Fragment
-        key={`tray-step-${index}`}
-      >
-        {rawContent}
-      </React.Fragment>
-    );
-  }, [rawContent, index]);
-
-  const footer =
-    activeTray?.footer?.() ?? null;
+  const footer = activeTray?.footer?.() ?? null;
 
   const ctxValue = useMemo(
     () => ({
@@ -103,17 +79,9 @@ export const TrayProvider: React.FC<{
       index,
       total,
       registerTray,
-      registerFocusable,
+      registerFocusable: () => {},
     }),
-    [
-      openTray,
-      close,
-      next,
-      back,
-      index,
-      total,
-      registerTray,
-    ],
+    [openTray, close, next, back, index, total, registerTray]
   );
 
   return (
@@ -121,10 +89,11 @@ export const TrayProvider: React.FC<{
       {children}
 
       <ActionTray
-        ref={trayRef}
-        content={content}
+        visible={activeTrayId !== null}
+        content={rawContent}
         footer={footer}
         onClose={close}
+        trayKey={`${activeTrayId}-${index}`}
       />
     </TrayContext.Provider>
   );

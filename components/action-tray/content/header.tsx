@@ -40,7 +40,7 @@ export default function Header({
     <View >
       <View
         style={{
-          paddingVertical: 8,
+          paddingVertical: 28,
           justifyContent: "center",
         }}
       >
