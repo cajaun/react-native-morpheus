@@ -75,7 +75,7 @@ const OnboardingExample = () => {
       </Tray.Content>
 
       {/* STEP 2 */}
-      <Tray.Content scale>
+      <Tray.Content scale >
         <Tray.Body>
           <Tray.Header>
             <Header
@@ -229,7 +229,7 @@ const OnboardingExample = () => {
         </Tray.Body>
       </Tray.Content>
 
-      <Tray.Content scale>
+      <Tray.Content scale >
         <Tray.Body>
           <Tray.Header>
             <Header
@@ -259,6 +259,52 @@ const OnboardingExample = () => {
               }}
             >
               This is some example test that spans over multiple lines bla bla
+            </Text>
+          </Tray.Section>
+        </Tray.Body>
+      </Tray.Content>
+
+      <Tray.Content scale >
+        <Tray.Body>
+          <Tray.Header>
+            <Header
+              step={4}
+              leftLabel="Content Five"
+              shouldClose
+                 onBack={() => back()}
+              onClose={() => close()}
+            />
+          </Tray.Header>
+
+          <View
+            style={{
+              height: 1,
+              width: "100%",
+              backgroundColor: "#F7F7F7",
+            }}
+          />
+
+          <Tray.Section>
+            <Text
+              className="text-[#94999F] font-sfMedium "
+              style={{
+                fontSize: 21,
+                lineHeight: 28,
+                letterSpacing: 0.2,
+              }}
+            >
+              This is some example test that spans over multiple lines bla bla
+            </Text>
+
+             <Text
+              className="text-[#94999F] font-sfMedium "
+              style={{
+                fontSize: 21,
+                lineHeight: 28,
+                letterSpacing: 0.2,
+              }}
+            >
+             Lorem ipsum dolor sit amet consectetur adipisicing elit. Officia, quas eum quia deserunt odit atque voluptate velit mollitia quisquam sit officiis praesentium voluptates voluptatem nemo nostrum voluptas enim assumenda ullam.
             </Text>
           </Tray.Section>
         </Tray.Body>

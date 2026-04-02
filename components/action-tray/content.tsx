@@ -14,6 +14,7 @@ type Props = {
   skipExiting?: boolean;
   step?: number;
   total?: number;
+  fullScreen?: boolean;
 };
 
 const createMorphEntering = (scale: boolean): EntryExitAnimationFunction => {
@@ -23,7 +24,7 @@ const createMorphEntering = (scale: boolean): EntryExitAnimationFunction => {
     return {
       initialValues: {
         opacity: 0,
-        transform: [...(scale ? [{ scale: 0.93 }] : []), { translateY: 6 }],
+        transform: [...(scale ? [{ scale: 0.95 }] : []), { translateY: 6 }],
       },
       animations: {
         opacity: withTiming(1, {
@@ -98,6 +99,7 @@ export const TrayContent: React.FC<Props> = ({
   skipExiting = false,
   step,
   total,
+  fullScreen,
 }) => {
   useEffect(() => {
     console.log("[TrayContent] render", {
@@ -113,7 +115,7 @@ export const TrayContent: React.FC<Props> = ({
       entering={skipEntering ? undefined : createMorphEntering(scale)}
       exiting={skipExiting ? undefined : createMorphExiting(scale)}
     >
-      {React.cloneElement(children as any, { step, total })}
+      {React.cloneElement(children as any, { step, total, fullScreen })}
     </Animated.View>
   );
 };

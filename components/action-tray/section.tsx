@@ -56,7 +56,7 @@ const styles = StyleSheet.create({
     gap: TRAY_SECTION_GAP,
     paddingTop: 24,
     paddingBottom: 24,
-    flexGrow: 1, // 🔥 important
+    flexGrow: 1, 
   },
 });
 

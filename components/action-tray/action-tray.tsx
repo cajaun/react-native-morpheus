@@ -39,6 +39,7 @@ type ActionTrayProps = {
   content?: React.ReactNode;
   footer?: React.ReactNode;
   trayId?: string;
+  fullScreen?: boolean;
 };
 
 export type ActionTrayRef = {
@@ -53,17 +54,22 @@ const log = (...args: any[]) => {
 };
 
 const ActionTray = forwardRef<ActionTrayRef, ActionTrayProps>(
-  ({ style, onClose, content, footer, trayId, visible }, ref) => {
+  (
+    { style, onClose, content, footer, trayId, visible, fullScreen = false },
+    ref,
+  ) => {
     const translateY = useSharedValue(SCREEN_HEIGHT);
     const contentHeight = useSharedValue(0);
     const footerHeight = useSharedValue(0);
     const active = useSharedValue(false);
     const context = useSharedValue({ y: 0 });
 
-    // ReactNodes can't be passed into worklets
-    //  useSharedValue gives the animated style a boolean
-    // so it can safely read on the UI thread
     const hasFooter = useSharedValue(false);
+
+    const animMargin = useSharedValue(HORIZONTAL_MARGIN);
+    const animRadius = useSharedValue(BORDER_RADIUS);
+    const animBottom = useSharedValue(0); // initialised properly once bottom is known
+    const animMinHeight = useSharedValue(0);
 
     const [layoutEnabled, setLayoutEnabled] = useState(false);
     const [footerMeasured, setFooterMeasured] = useState(false);
@@ -72,10 +78,6 @@ const ActionTray = forwardRef<ActionTrayRef, ActionTrayProps>(
 
     const measuredFooterHeightRef = useRef(0);
     const justOpenedRef = useRef(false);
-
-    // A plain number incremented on every open/close transition.
-    // Spring callbacks capture it as a primitive (safe for worklets
-    // and JS reads the ref live to detect stale callbacks.
     const closeGenerationRef = useRef(0);
 
     const { bottom } = useSafeAreaInsets();
@@ -88,9 +90,66 @@ const ActionTray = forwardRef<ActionTrayRef, ActionTrayProps>(
       trayId,
     );
 
+    // Seed animBottom once safe area is known
+    useEffect(() => {
+      if (!fullScreen) animBottom.value = bottom;
+    }, [bottom]);
+
     useEffect(() => {
       hasFooter.value = !!renderedFooter;
     }, [renderedFooter]);
+
+    const animFullScreenBg = useSharedValue(0);
+
+    // In the fullScreen/visible effect:
+    useEffect(() => {
+      if (!visible) return;
+
+      const springCfg = { damping: 50, stiffness: 400, mass: 0.8 };
+
+      animMargin.value = withSpring(
+        fullScreen ? 0 : HORIZONTAL_MARGIN,
+        springCfg,
+      );
+
+      animRadius.value = withSpring(BORDER_RADIUS, springCfg);
+
+      animBottom.value = withSpring(fullScreen ? 0 : bottom, springCfg);
+
+      animMinHeight.value = withSpring(
+        fullScreen ? SCREEN_HEIGHT : 0,
+        springCfg,
+        (finished) => {
+         if (fullScreen) {
+  animFullScreenBg.value = 1;
+}
+        },
+      );
+    }, [fullScreen, visible]);
+
+
+    useEffect(() => {
+      if (!visible) {
+        animMargin.value = HORIZONTAL_MARGIN;
+        animRadius.value = BORDER_RADIUS;
+        animBottom.value = bottom;
+        animMinHeight.value = 0;
+      }
+    }, [visible]);
+
+    const totalHeight = useDerivedValue(() => {
+      return contentHeight.value + footerHeight.value + bottom;
+    });
+
+    const progress = useDerivedValue(() => {
+      if (totalHeight.value === 0) return 0;
+      const travel = Math.min(translateY.value, totalHeight.value);
+      return 1 - travel / totalHeight.value;
+    });
+
+    const rFullScreenBgStyle = useAnimatedStyle(() => ({
+      opacity: animFullScreenBg.value,
+    }));
 
     const doOpenSpring = useCallback(() => {
       log("doOpenSpring", {
@@ -106,6 +165,7 @@ const ActionTray = forwardRef<ActionTrayRef, ActionTrayProps>(
         (finished) => {
           if (finished) {
             runOnJS(log)("OPEN SPRING FINISHED");
+
             runOnJS(setLayoutEnabled)(true);
           }
         },
@@ -114,8 +174,6 @@ const ActionTray = forwardRef<ActionTrayRef, ActionTrayProps>(
       active.value = true;
     }, []);
 
-    // Also zeroes contentHeight and clears contentMeasured so the next open
-    // can't inherit a stale layout reading from the wiped container.
     const resetContent = useCallback(() => {
       log("resetContent()");
       contentHeight.value = 0;
@@ -126,8 +184,6 @@ const ActionTray = forwardRef<ActionTrayRef, ActionTrayProps>(
       setLayoutEnabled(false);
     }, []);
 
-    // Spring callbacks run on the UI thread. Reading a ref there would be
-    // unsafe, so we bridge back via runOnJS and compare on the JS thread.
     const checkAndReset = useCallback(
       (capturedGeneration: number) => {
         if (closeGenerationRef.current === capturedGeneration) {
@@ -155,7 +211,6 @@ const ActionTray = forwardRef<ActionTrayRef, ActionTrayProps>(
           footerMeasured,
           contentMeasured,
           footer: measuredFooterHeightRef.current,
-          // is old content still on-screen when new open fires?
           hadExistingContent: renderedTrayId !== undefined,
           existingTrayId: renderedTrayId,
         });
@@ -181,10 +236,7 @@ const ActionTray = forwardRef<ActionTrayRef, ActionTrayProps>(
           doOpenSpring();
         }
       } else {
-        log("CLOSE START", {
-          // what content is on-screen when close fires?
-          renderedTrayId,
-        });
+        log("CLOSE START", { renderedTrayId });
 
         const myGeneration = ++closeGenerationRef.current;
 
@@ -192,18 +244,20 @@ const ActionTray = forwardRef<ActionTrayRef, ActionTrayProps>(
         setLayoutEnabled(false);
         active.value = false;
 
+        animFullScreenBg.value = 0;
+
         translateY.value = withSpring(
           SCREEN_HEIGHT,
           { damping: 50, stiffness: 400, mass: 0.8 },
-          () => {
-            runOnJS(checkAndReset)(myGeneration);
+          (finished) => {
+            if (finished) {
+              runOnJS(checkAndReset)(myGeneration);
+            }
           },
         );
       }
     }, [visible]);
 
-    // Footer height must be measured before opening so the tray doesn't
-    // pop to the wrong size. Content measurement gates the spring the same way.
     useEffect(() => {
       const needsFooter = !!renderedFooter;
 
@@ -225,8 +279,6 @@ const ActionTray = forwardRef<ActionTrayRef, ActionTrayProps>(
       doOpenSpring();
     }, [pendingOpen, footerMeasured, contentMeasured]);
 
-    // trayId encodes both which tray and which step, so any change here
-    // means the visible content needs to swap without a close/open cycle.
     useEffect(() => {
       if (!visible) return;
 
@@ -237,8 +289,9 @@ const ActionTray = forwardRef<ActionTrayRef, ActionTrayProps>(
 
       log("TRAY CHANGE", { trayId });
 
-      // Only update content when the tray itself changes
-      // Step changes are handled INSIDE TrayContent now
+   
+      animFullScreenBg.value = 0;
+
       setLayoutEnabled(true);
       setRenderedContent(content);
       setRenderedFooter(footer);
@@ -247,23 +300,10 @@ const ActionTray = forwardRef<ActionTrayRef, ActionTrayProps>(
 
     useEffect(() => {
       log("RENDERED CONTENT CHANGED", {
-        // null = wiped, undefined key = blank tray, key = active content
         trayId: renderedTrayId,
         hasContent: renderedContent !== null,
       });
     }, [renderedContent]);
-
-    const totalHeight = useDerivedValue(() => {
-      return contentHeight.value + footerHeight.value + bottom;
-    });
-
-    const progress = useDerivedValue(() => {
-      if (totalHeight.value === 0) return 0;
-      // Clamp to totalHeight so the initial off-screen position (SCREEN_HEIGHT)
-      // doesn't produce a negative value before the tray has ever opened.
-      const travel = Math.min(translateY.value, totalHeight.value);
-      return 1 - travel / totalHeight.value;
-    });
 
     const heightEasing = Easing.bezier(0.26, 1, 0.5, 1).factory();
 
@@ -272,46 +312,62 @@ const ActionTray = forwardRef<ActionTrayRef, ActionTrayProps>(
       [],
     );
 
-
-
     const handleClose = useCallback(() => {
       onClose?.();
     }, [onClose]);
 
-    const gesture = useRef(
-      Gesture.Pan()
-        .onStart(() => {
-          context.value = { y: translateY.value };
-        })
-        .onUpdate((e) => {
-          if (e.translationY >= 0) {
-            translateY.value = e.translationY + context.value.y;
-          }
-        })
-        .onEnd((e) => {
-          const projectedEnd = translateY.value + e.velocityY / 60;
-          const shouldClose =
-            projectedEnd > totalHeight.value * 0.5 || e.velocityY > 1000;
+const gesture = useMemo(() => {
+  return Gesture.Pan()
+    .enabled(!fullScreen)
+    .onStart(() => {
+      context.value = { y: translateY.value };
+    })
+    .onUpdate((e) => {
+      if (e.translationY >= 0) {
+        translateY.value = e.translationY + context.value.y;
+      }
+    })
+    .onEnd((e) => {
+      const projectedEnd = translateY.value + e.velocityY / 60;
+      const shouldClose =
+        projectedEnd > totalHeight.value * 0.5 || e.velocityY > 1000;
 
-          if (shouldClose) {
-            runOnJS(handleClose)();
-          } else {
-            translateY.value = withSpring(0);
-          }
-        }),
-    ).current;
+      if (shouldClose) {
+        runOnJS(handleClose)();
+      } else {
+        translateY.value = withSpring(0);
+      }
+    });
+}, [fullScreen]);
 
     const rFooterSpacerStyle = useAnimatedStyle(() => ({
       height: hasFooter.value ? footerHeight.value : 0,
+    }));
+
+
+    const rContainerStyle = useAnimatedStyle(() => ({
+      left: animMargin.value,
+      right: animMargin.value,
+      borderRadius: animRadius.value,
+      bottom: animBottom.value,
+      minHeight: animMinHeight.value,
+    }));
+
+ 
+    const rFooterContainerStyle = useAnimatedStyle(() => ({
+      left: animMargin.value,
+      right: animMargin.value,
+      bottom: animBottom.value,
+      borderTopLeftRadius: animRadius.value, 
+      borderTopRightRadius: animRadius.value, 
+      borderBottomLeftRadius: animRadius.value,
+      borderBottomRightRadius: animRadius.value,
     }));
 
     const rDragStyle = useAnimatedStyle(() => ({
       transform: [{ translateY: translateY.value }],
     }));
 
-    // Guard against stale layout events fired after resetContent nulls the tray.
-    // Without the renderedTrayId check, the empty container reports a height
-    // equal to the footer spacer and poisons contentMeasured for the next open.
     const handleLayout = (e: LayoutChangeEvent) => {
       const h = e.nativeEvent.layout.height;
       contentHeight.value = h;
@@ -339,8 +395,6 @@ const ActionTray = forwardRef<ActionTrayRef, ActionTrayProps>(
 
     return (
       <>
-        {/* Render footer offscreen before the tray opens so its height is known
-            before the spring fires. Unmounts once measured. */}
         {footer && !footerMeasured && (
           <Animated.View
             style={[
@@ -355,9 +409,7 @@ const ActionTray = forwardRef<ActionTrayRef, ActionTrayProps>(
             ]}
             onLayout={(e) => {
               const h = e.nativeEvent.layout.height;
-
               log("OFFSCREEN FOOTER onLayout", { height: h });
-
               measuredFooterHeightRef.current = h;
               footerHeight.value = h;
               setFooterMeasured(true);
@@ -370,9 +422,14 @@ const ActionTray = forwardRef<ActionTrayRef, ActionTrayProps>(
 
         <Backdrop onTap={handleClose} isActive={active} progress={progress} />
 
+        <Animated.View
+          style={[styles.fullScreenBg, rFullScreenBgStyle]}
+          pointerEvents="none"
+        />
+
         <GestureDetector gesture={gesture}>
           <Animated.View
-            style={[styles.container, { bottom }, rDragStyle, style]}
+            style={[styles.container, rContainerStyle, rDragStyle, style]}
             layout={layoutEnabled ? layoutAnimationConfig : undefined}
             onLayout={handleLayout}
           >
@@ -383,13 +440,11 @@ const ActionTray = forwardRef<ActionTrayRef, ActionTrayProps>(
           </Animated.View>
         </GestureDetector>
 
-        {/* Footer is absolutely positioned over the tray bottom and slides with it.
-            Opacity hides it when empty; pointer events are disabled to match. */}
         <Animated.View
           onLayout={handleFooterLayout}
           style={[
             styles.footer,
-            { bottom, left: HORIZONTAL_MARGIN, right: HORIZONTAL_MARGIN },
+            rFooterContainerStyle,
             rDragStyle,
             { opacity: renderedFooter ? 1 : 0 },
           ]}
@@ -405,10 +460,7 @@ const ActionTray = forwardRef<ActionTrayRef, ActionTrayProps>(
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
-    left: HORIZONTAL_MARGIN,
-    right: HORIZONTAL_MARGIN,
     backgroundColor: "white",
-    borderRadius: BORDER_RADIUS,
     borderCurve: "continuous",
     overflow: "hidden",
   },
@@ -421,13 +473,15 @@ const styles = StyleSheet.create({
     paddingTop: 6,
     paddingBottom: TRAY_VERTICAL_PADDING,
     backgroundColor: "white",
-    borderBottomLeftRadius: BORDER_RADIUS,
-    borderBottomRightRadius: BORDER_RADIUS,
   },
   measureFooter: {
     position: "absolute",
     opacity: 0,
     top: -10000,
+  },
+  fullScreenBg: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "white",
   },
 });
 

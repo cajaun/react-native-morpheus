@@ -80,19 +80,24 @@ export const TrayProvider: React.FC<{ children: React.ReactNode }> = ({
 
         const isFirstRender = justOpenedRef.current && trayIndex === 0;
 
+        const isFullScreen = def.fullScreenSteps?.[trayIndex] ?? false;
+        
         const rawContent = isActive
           ? (def.contents[trayIndex]?.(
               `${trayId}-${trayIndex}`,
               isFirstRender,
               false,
               trayIndex,
-              trayTotal
+              trayTotal,
+              isFullScreen 
             ) ?? null)
           : null;
 
         const footer = isActive
           ? (def.footer?.(trayIndex, trayTotal) ?? null)
           : null;
+
+          
 
         return (
           <ActionTray
@@ -102,6 +107,7 @@ export const TrayProvider: React.FC<{ children: React.ReactNode }> = ({
             footer={footer}
             onClose={close}
             trayId={isActive ? `${trayId}-${trayIndex}` : undefined}
+             fullScreen={isFullScreen}
           />
         );
       })}

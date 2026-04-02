@@ -14,6 +14,7 @@ export const TrayRoot: React.FC<{ children: React.ReactNode }> = ({
 
   const parsed = useMemo(() => {
     const outside: React.ReactNode[] = [];
+    const fullScreenSteps: boolean[] = [];
     const contents: any[] = [];
     let footer: any;
 
@@ -26,13 +27,15 @@ export const TrayRoot: React.FC<{ children: React.ReactNode }> = ({
       const name = (child.type as any)?.displayName;
 
       if (name === "TrayContent") {
+             fullScreenSteps.push(!!(child.props as any).fullScreen);
         contents.push(
           (
             stepKey?: string,
             skipEntering?: boolean,
             skipExiting?: boolean,
             step?: number,
-            total?: number
+            total?: number,
+            fullScreen?: boolean 
           ) =>
             React.cloneElement(child, {
               stepKey,
@@ -40,6 +43,7 @@ export const TrayRoot: React.FC<{ children: React.ReactNode }> = ({
               skipExiting,
               step,
               total,
+              fullScreen,
             })
         );
         return;
@@ -54,15 +58,16 @@ export const TrayRoot: React.FC<{ children: React.ReactNode }> = ({
       outside.push(child);
     });
 
-    return { outside, contents, footer };
+   return { outside, contents, footer, fullScreenSteps };
   }, [children]);
 
   useEffect(() => {
     registerTray(trayId, {
       contents: parsed.contents,
       footer: parsed.footer,
+          fullScreenSteps: parsed.fullScreenSteps,
     });
-  }, [trayId, parsed.contents, parsed.footer, registerTray]);
+  }, [trayId, parsed.contents, parsed.footer, parsed.fullScreenSteps, registerTray]);
 
   return (
     <TrayScopeContext.Provider value={trayId}>

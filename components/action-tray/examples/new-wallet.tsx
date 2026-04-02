@@ -103,8 +103,8 @@ const PayFromTray = () => {
                         className=" font-sfMedium"
                         style={{
                           fontSize: 21,
-                          lineHeight: 28,
-                          letterSpacing: 0.2,
+                          // lineHeight: 28,
+                          // letterSpacing: 0.2,
                         }}
                       >
                         {wallet.name}
@@ -113,8 +113,8 @@ const PayFromTray = () => {
                         className=" font-sfRegular text-[#94999F] "
                         style={{
                           fontSize: 18,
-                          lineHeight: 28,
-                          letterSpacing: 0.2,
+                          // lineHeight: 28,
+                          // letterSpacing: 0.2,
                      
                         }}
                       >
@@ -153,7 +153,7 @@ const PayFromTray = () => {
               style={{
                 backgroundColor: "#41BBFF",
                 height: 50,
-                borderRadius: 28,
+                borderRadius: 36,
                 alignItems: "center",
                 justifyContent: "center",
                 width: "100%",
@@ -177,7 +177,7 @@ const PayFromTray = () => {
         </Tray.Body>
       </Tray.Content>
 
-      <Tray.Content>
+      <Tray.Content fullScreen>
         <Tray.Body>
           <Tray.Header>
             <Header

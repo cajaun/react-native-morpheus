@@ -6,13 +6,15 @@ export type TrayDefinition = {
     skipEntering?: boolean,
     skipExiting?: boolean,
     step?: number,
-    total?: number
+    total?: number,
+    fullScreen?: boolean
   ) => React.ReactNode)[];
   footer?: (step?: number, total?: number) => React.ReactNode;
+  fullScreenSteps?: boolean[];
 };
 
 export type TrayContextValue = {
-  activeTrayId: string | null; // ← added
+  activeTrayId: string | null; 
   openTray: (id: string) => void;
   close: () => void;
   next: () => void;

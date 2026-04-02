@@ -1,12 +1,5 @@
 import React from "react";
 import { Text, View, LayoutChangeEvent } from "react-native";
-import Animated, {
-  useAnimatedStyle,
-  useDerivedValue,
-  withSpring,
-  interpolate,
-  useSharedValue,
-} from "react-native-reanimated";
 import { SymbolView } from "expo-symbols";
 import { PressableScale } from "@/components/ui/utils/pressable-scale";
 import * as Haptics from "expo-haptics";
@@ -61,16 +54,16 @@ export default function Header({
             style={{
               position: "absolute",
               right: 0,
-              height: 32,
-              width: 32,
+              height: 36,
+              width: 36,
             }}
           >
             <SymbolView
               name="xmark"
               type="palette"
-              size={16}
-              weight="semibold"
-              tintColor={"#94999F"}
+              size={18}
+              weight="bold"
+              tintColor={"#949595"}
             />
           </PressableScale>
         )}
