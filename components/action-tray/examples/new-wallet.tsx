@@ -48,7 +48,7 @@ const PayFromTray = () => {
         </PressableScale>
       </Tray.Trigger>
 
-      <Tray.Content scale>
+      <Tray.Content scale className="bg-white ">
         <Tray.Body>
           {/* HEADER */}
           <Tray.Header>
@@ -176,7 +176,9 @@ const PayFromTray = () => {
         </Tray.Body>
       </Tray.Content>
 
-      <Tray.Content scale fullScreen>
+
+
+      <Tray.Content scale className="bg-white">
         <Tray.Body>
           <Tray.Header>
             <Header

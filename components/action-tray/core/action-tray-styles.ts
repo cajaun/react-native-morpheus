@@ -4,7 +4,6 @@ import { TRAY_VERTICAL_PADDING } from "./constants";
 export const styles = StyleSheet.create({
   container: {
     position: "absolute",
-    backgroundColor: "white",
     borderCurve: "continuous",
     overflow: "hidden",
   },
@@ -16,7 +15,6 @@ export const styles = StyleSheet.create({
     paddingHorizontal: TRAY_VERTICAL_PADDING,
     paddingTop: 6,
     paddingBottom: TRAY_VERTICAL_PADDING,
-    backgroundColor: "white",
   },
   measureFooter: {
     position: "absolute",

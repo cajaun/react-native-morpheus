@@ -19,7 +19,11 @@ const ActionTray = forwardRef<ActionTrayRef, ActionTrayProps>(
       footer,
       trayId,
       visible,
+      containerStyle,
+      className,
       fullScreen = false,
+      footerClassName,
+      footerStyle,
     },
     ref,
   ) => {
@@ -29,6 +33,10 @@ const ActionTray = forwardRef<ActionTrayRef, ActionTrayProps>(
       footer,
       trayId,
       fullScreen,
+      containerStyle,
+      className,
+      footerStyle,
+      footerClassName,
       onClose,
     });
 
@@ -42,6 +50,7 @@ const ActionTray = forwardRef<ActionTrayRef, ActionTrayProps>(
         animMargin,
         animRadius,
         animBottom,
+        animHeight,
         animMinHeight,
         animFullScreenBg,
         totalHeight,
@@ -49,9 +58,15 @@ const ActionTray = forwardRef<ActionTrayRef, ActionTrayProps>(
       },
       state: {
         layoutEnabled,
-        footerMeasured,
         renderedFooter,
         renderedContent,
+        renderedTrayId,
+        renderedFullScreen,
+        renderedContainerStyle,
+        renderedClassName,
+        renderedFooterStyle,
+        renderedFooterClassName,
+        measureFooter,
       },
       handlers: {
         handleContentLayout,
@@ -65,7 +80,7 @@ const ActionTray = forwardRef<ActionTrayRef, ActionTrayProps>(
     useImperativeHandle(ref, () => imperativeApi, [imperativeApi]);
 
     const gesture = useActionTrayGesture({
-      fullScreen,
+      fullScreen: renderedFullScreen,
       translateY,
       totalHeight,
       context,
@@ -73,9 +88,8 @@ const ActionTray = forwardRef<ActionTrayRef, ActionTrayProps>(
     });
 
     const {
-      fullScreenBgStyle,
       footerSpacerStyle,
-      containerStyle,
+      trayLayoutStyle,
       footerContainerStyle,
       contentPaddingStyle,
       dragStyle,
@@ -83,6 +97,7 @@ const ActionTray = forwardRef<ActionTrayRef, ActionTrayProps>(
       animMargin,
       animRadius,
       animBottom,
+      animHeight,
       animMinHeight,
       animFullScreenBg,
       translateY,
@@ -94,10 +109,14 @@ const ActionTray = forwardRef<ActionTrayRef, ActionTrayProps>(
       () => createTrayLayoutTransition(),
       [],
     );
+    const shouldUseLayoutAnimation =
+      layoutEnabled &&
+      !(visible && trayId !== renderedTrayId) &&
+      !(visible && fullScreen !== renderedFullScreen);
 
     return (
       <>
-        {footer && !footerMeasured && (
+        {measureFooter && (
           <Animated.View
             style={[
               styles.measureFooter,
@@ -112,7 +131,7 @@ const ActionTray = forwardRef<ActionTrayRef, ActionTrayProps>(
             onLayout={handleMeasureFooterLayout}
             pointerEvents="none"
           >
-            {footer}
+            {measureFooter}
           </Animated.View>
         )}
 
@@ -120,34 +139,49 @@ const ActionTray = forwardRef<ActionTrayRef, ActionTrayProps>(
           onTap={handleRequestClose}
           isActive={active}
           progress={progress}
+          totalHeight={totalHeight}
         />
 
-        <Animated.View
+        {/* <Animated.View
           style={[styles.fullScreenBg, fullScreenBgStyle]}
           pointerEvents="none"
-        />
+        /> */}
 
         <GestureDetector gesture={gesture}>
           <Animated.View
-            style={[styles.container, containerStyle, dragStyle, style]}
-            layout={layoutEnabled ? layoutAnimationConfig : undefined}
-            onLayout={handleContentLayout}
+            className={renderedClassName}
+            style={[
+              styles.container,
+              trayLayoutStyle,
+              renderedContainerStyle,
+              dragStyle,
+              style,
+            ]}
+            layout={shouldUseLayoutAnimation ? layoutAnimationConfig : undefined}
           >
-          <Animated.View style={styles.content}>
-  <Animated.View style={contentPaddingStyle}>
-    {renderedContent}
-  </Animated.View>
-  <Animated.View style={footerSpacerStyle} />
-</Animated.View>
+            <Animated.View
+              style={styles.content}
+              // Measure the intrinsic content stack, not the animated shell.
+              // The shell can be fullscreen-sized during presentation swaps,
+              // which pollutes the next step's measurement with stale heights.
+              onLayout={handleContentLayout}
+            >
+              <Animated.View style={contentPaddingStyle}>
+                {renderedContent}
+              </Animated.View>
+              <Animated.View style={footerSpacerStyle} />
+            </Animated.View>
           </Animated.View>
         </GestureDetector>
 
         <Animated.View
+          className={renderedFooterClassName}
           onLayout={handleVisibleFooterLayout}
           style={[
             styles.footer,
             footerContainerStyle,
             dragStyle,
+            renderedFooterStyle,
             { opacity: renderedFooter ? 1 : 0 },
           ]}
           pointerEvents={renderedFooter ? "auto" : "none"}

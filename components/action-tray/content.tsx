@@ -5,6 +5,8 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { MORPH_DURATION } from "./core/constants";
+import { StyleProp, ViewStyle } from "react-native";
+import { log } from "./core/logger";
 
 type Props = {
   children: React.ReactNode;
@@ -14,6 +16,8 @@ type Props = {
   skipExiting?: boolean;
   step?: number;
   total?: number;
+    style?: StyleProp<ViewStyle>;
+  className?: string;
   fullScreen?: boolean;
 };
 
@@ -100,20 +104,54 @@ export const TrayContent: React.FC<Props> = ({
   step,
   total,
   fullScreen,
+    style,
+  className,
 }) => {
-  // useEffect(() => {
-  //   console.log("[TrayContent] render", {
-  //     step,
-  //     total,
-  //     stepKey,
-  //   });
-  // }, [step, total, stepKey]);
+  useEffect(() => {
+    log("TrayContent props", {
+      stepKey,
+      step,
+      total,
+      fullScreen,
+      skipEntering,
+      skipExiting,
+      hasClassName: className != null,
+      hasStyle: style != null,
+    });
+  }, [
+    className,
+    fullScreen,
+    skipEntering,
+    skipExiting,
+    step,
+    stepKey,
+    style,
+    total,
+  ]);
+
+  useEffect(() => {
+    log("TrayContent mounted", {
+      stepKey,
+      step,
+      fullScreen,
+    });
+
+    return () => {
+      log("TrayContent unmounted", {
+        stepKey,
+        step,
+        fullScreen,
+      });
+    };
+  }, [fullScreen, step, stepKey]);
 
   return (
     <Animated.View
       key={stepKey}
       entering={skipEntering ? undefined : createMorphEntering(scale)}
       exiting={skipExiting ? undefined : createMorphExiting(scale)}
+            style={style}
+      className={className}
     >
       {React.cloneElement(children as any, { step, total, fullScreen })}
     </Animated.View>

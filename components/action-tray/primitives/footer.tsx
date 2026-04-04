@@ -1,10 +1,13 @@
 import React, { useEffect } from "react";
+import { StyleProp, ViewStyle } from "react-native";
 
 export const TrayFooter: React.FC<{
   children: React.ReactNode;
   step?: number;
   total?: number;
-}> = ({ children, step, total }) => {
+      style?: StyleProp<ViewStyle>;
+  className?: string;
+}> = ({ children, step, total,}) => {
 
   useEffect(() => {
   console.log("[TrayFooter] props", {

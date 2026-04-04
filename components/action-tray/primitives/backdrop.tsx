@@ -1,5 +1,6 @@
 import React from "react";
 import Animated, {
+  DerivedValue,
   Easing,
   SharedValue,
   useAnimatedProps,
@@ -12,9 +13,10 @@ type BackdropProps = {
   onTap: () => void;
   isActive: SharedValue<boolean>;
   progress: SharedValue<number>;
+  totalHeight: DerivedValue<number>;
 };
 
-const Backdrop: React.FC<BackdropProps> = React.memo(({ isActive, onTap, progress }) => {
+const Backdrop: React.FC<BackdropProps> = React.memo(({ isActive, onTap, progress, totalHeight }) => {
   const rBackdropStyle = useAnimatedStyle(() => {
     return {
       opacity: progress.value,
@@ -34,7 +36,7 @@ const Backdrop: React.FC<BackdropProps> = React.memo(({ isActive, onTap, progres
       style={[
         {
           ...StyleSheet.absoluteFillObject,
-          backgroundColor: "rgba(0,0,0,0.2)",
+          backgroundColor: "rgba(0,0,0,0.3)",
         },
         rBackdropStyle,
       ]}

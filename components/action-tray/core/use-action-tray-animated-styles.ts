@@ -5,6 +5,7 @@ type Params = {
   animMargin: { value: number };
   animRadius: { value: number };
   animBottom: { value: number };
+  animHeight: { value: number };
   animMinHeight: { value: number };
   animFullScreenBg: { value: number };
   translateY: { value: number };
@@ -16,6 +17,7 @@ export const useActionTrayAnimatedStyles = ({
   animMargin,
   animRadius,
   animBottom,
+  animHeight,
   animMinHeight,
   animFullScreenBg,
   translateY,
@@ -30,11 +32,12 @@ export const useActionTrayAnimatedStyles = ({
     height: hasFooter.value ? footerHeight.value : 0,
   }));
 
-  const containerStyle = useAnimatedStyle(() => ({
+  const trayLayoutStyle = useAnimatedStyle(() => ({
     left: animMargin.value,
     right: animMargin.value,
     borderRadius: animRadius.value,
     bottom: animBottom.value,
+    height: animHeight.value > 0 ? animHeight.value : undefined,
     minHeight: animMinHeight.value,
   }));
 
@@ -53,13 +56,13 @@ export const useActionTrayAnimatedStyles = ({
   }));
 
   const contentPaddingStyle = useAnimatedStyle(() => ({
-  paddingHorizontal: HORIZONTAL_MARGIN - animMargin.value,
+  paddingHorizontal: 0
 }));
 
   return {
     fullScreenBgStyle,
     footerSpacerStyle,
-    containerStyle,
+    trayLayoutStyle,
     footerContainerStyle,
     dragStyle,
       contentPaddingStyle,

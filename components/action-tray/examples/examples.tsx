@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text } from "react-native";
 import OnboardingExample from "./onboarding-example";
 import PayFromTray from "./new-wallet";
+import Send from "./send";
 
 const ActionTrayExamples = () => {
   return (
@@ -19,7 +20,7 @@ gap: 16,
 
       <PayFromTray />
 
-      {/* <PostExample/> */}
+      <Send/>
     </View>
   );
 };

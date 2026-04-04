@@ -9,6 +9,10 @@ export type ActionTrayProps = {
   footer?: React.ReactNode;
   trayId?: string;
   fullScreen?: boolean;
+  containerStyle?: StyleProp<ViewStyle>;
+  className?: string;
+  footerStyle?: StyleProp<ViewStyle>;
+  footerClassName?: string;
 };
 
 export type ActionTrayRef = {
@@ -21,6 +25,11 @@ export type RenderedTrayState = {
   content: React.ReactNode;
   footer: React.ReactNode;
   trayId?: string;
+  fullScreen: boolean;
+  containerStyle?: StyleProp<ViewStyle>;
+  className?: string;
+  footerStyle?: StyleProp<ViewStyle>;
+  footerClassName?: string;
 };
 
 export type MeasurementState = {

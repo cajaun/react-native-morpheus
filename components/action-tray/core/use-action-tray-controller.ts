@@ -1,5 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { LayoutChangeEvent } from "react-native";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+} from "react";
+import { StyleProp, ViewStyle } from "react-native";
 import {
   runOnJS,
   useDerivedValue,
@@ -7,12 +12,11 @@ import {
   withSpring,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  BORDER_RADIUS,
-  HORIZONTAL_MARGIN,
-  SCREEN_HEIGHT,
-} from "./constants";
+import { SCREEN_HEIGHT, TRAY_SPRING_CONFIG } from "./constants";
 import { log } from "./logger";
+import { useActionTrayMeasurements } from "./use-action-tray-measurements";
+import { useActionTrayPresentation } from "./use-action-tray-presentation";
+import { useActionTrayRenderState } from "./use-action-tray-render-state";
 
 type Params = {
   visible: boolean;
@@ -20,10 +24,12 @@ type Params = {
   footer?: React.ReactNode;
   trayId?: string;
   fullScreen: boolean;
+  containerStyle?: StyleProp<ViewStyle>;
+  className?: string;
+  footerStyle?: StyleProp<ViewStyle>;
+  footerClassName?: string;
   onClose: () => void;
 };
-
-const SPRING_CONFIG = { damping: 50, stiffness: 400, mass: 0.8 };
 
 export const useActionTrayController = ({
   visible,
@@ -31,6 +37,10 @@ export const useActionTrayController = ({
   footer,
   trayId,
   fullScreen,
+  containerStyle,
+  className,
+  footerStyle,
+  footerClassName,
   onClose,
 }: Params) => {
   const { bottom } = useSafeAreaInsets();
@@ -41,43 +51,49 @@ export const useActionTrayController = ({
   const active = useSharedValue(false);
   const context = useSharedValue({ y: 0 });
   const hasFooter = useSharedValue(false);
+  const closeGeneration = useSharedValue(0);
 
-  const animMargin = useSharedValue(HORIZONTAL_MARGIN);
-  const animRadius = useSharedValue(BORDER_RADIUS);
-  const animBottom = useSharedValue(0);
-  const animMinHeight = useSharedValue(0);
-  const animFullScreenBg = useSharedValue(0);
-
-  const [layoutEnabled, setLayoutEnabled] = useState(false);
-  const [footerMeasured, setFooterMeasured] = useState(false);
-  const [contentMeasured, setContentMeasured] = useState(false);
-  const [pendingOpen, setPendingOpen] = useState(false);
-
-  const [renderedFooter, setRenderedFooter] =
-    useState<React.ReactNode>(footer);
-  const [renderedContent, setRenderedContent] =
-    useState<React.ReactNode>(content);
-  const [renderedTrayId, setRenderedTrayId] = useState<string | undefined>(
-    trayId,
-  );
-
-  const measuredFooterHeightRef = useRef(0);
   const justOpenedRef = useRef(false);
-  const closeGenerationRef = useRef(0);
 
-  
+  const renderState = useActionTrayRenderState({
+    content,
+    footer,
+    trayId,
+    fullScreen,
+    containerStyle,
+    className,
+    footerStyle,
+    footerClassName,
+  });
+
+  const presentation = useActionTrayPresentation({
+    fullScreen,
+  });
+  const {
+    animMargin,
+    animRadius,
+    animBottom,
+    animHeight,
+    animMinHeight,
+    animFullScreenBg,
+  } = presentation.shared;
+
+  const measurements = useActionTrayMeasurements({
+    contentHeight,
+    footerHeight,
+    renderedTrayId: renderState.state.renderedTrayId,
+    renderedFooter: renderState.state.renderedFooter,
+  });
 
   useEffect(() => {
-    if (!fullScreen) {
-      animBottom.value = bottom;
-    }
-  }, [animBottom, bottom, fullScreen]);
-
-  useEffect(() => {
-    hasFooter.value = !!renderedFooter;
-  }, [hasFooter, renderedFooter]);
+    hasFooter.value = !!renderState.state.renderedFooter;
+  }, [hasFooter, renderState.state.renderedFooter]);
 
   const totalHeight = useDerivedValue(() => {
+    if (renderState.state.renderedFullScreen) {
+      return SCREEN_HEIGHT;
+    }
+
     return contentHeight.value + footerHeight.value + bottom;
   });
 
@@ -87,246 +103,226 @@ export const useActionTrayController = ({
     return 1 - travel / totalHeight.value;
   });
 
-  const applyPresentationMode = useCallback(() => {
-    animMargin.value = withSpring(
-      fullScreen ? 0 : HORIZONTAL_MARGIN,
-      SPRING_CONFIG,
-    );
-
-    animRadius.value = withSpring(BORDER_RADIUS, SPRING_CONFIG);
-
-    animBottom.value = withSpring(fullScreen ? 0 : bottom, SPRING_CONFIG);
-
-    animMinHeight.value = withSpring(
-      fullScreen ? SCREEN_HEIGHT : 0,
-      SPRING_CONFIG,
-      (finished) => {
-        if (finished && fullScreen) {
-          animFullScreenBg.value = 1;
-        }
-      },
-    );
-  }, [
-    animBottom,
-    animFullScreenBg,
-    animMargin,
-    animMinHeight,
-    animRadius,
-    bottom,
-    fullScreen,
-  ]);
-
-  const resetPresentationMode = useCallback(() => {
-    animMargin.value = HORIZONTAL_MARGIN;
-    animRadius.value = BORDER_RADIUS;
-    animBottom.value = bottom;
-    animMinHeight.value = 0;
-  }, [animBottom, animMargin, animMinHeight, animRadius, bottom]);
-
-  useEffect(() => {
-    if (visible) {
-      applyPresentationMode();
-    }
-  }, [applyPresentationMode, visible]);
-
-  useEffect(() => {
-    if (!visible) {
-      resetPresentationMode();
-    }
-  }, [resetPresentationMode, visible]);
-
   const doOpenSpring = useCallback(() => {
     log("doOpenSpring", {
-      footer: measuredFooterHeightRef.current,
+      footer: measurements.shared.measuredFooterHeight.value,
       content: contentHeight.value,
     });
 
-    footerHeight.value = measuredFooterHeightRef.current;
+    footerHeight.value = measurements.shared.measuredFooterHeight.value;
 
-    translateY.value = withSpring(0, SPRING_CONFIG, (finished) => {
+    translateY.value = withSpring(0, TRAY_SPRING_CONFIG, (finished) => {
       if (finished) {
         runOnJS(log)("OPEN SPRING FINISHED");
-        runOnJS(setLayoutEnabled)(true);
+        runOnJS(measurements.actions.enableLayout)();
       }
     });
 
     active.value = true;
-  }, [active, contentHeight, footerHeight, translateY]);
+  }, [
+    active,
+    contentHeight,
+    footerHeight,
+    measurements.actions.enableLayout,
+    measurements.shared.measuredFooterHeight,
+    translateY,
+  ]);
 
-  const resetContent = useCallback(() => {
-    log("resetContent()");
-    contentHeight.value = 0;
-    setContentMeasured(false);
-    setRenderedContent(null);
-    setRenderedFooter(null);
-    setRenderedTrayId(undefined);
-    setLayoutEnabled(false);
-  }, [contentHeight]);
-
-  const checkAndReset = useCallback(
-    (capturedGeneration: number) => {
-      if (closeGenerationRef.current === capturedGeneration) {
-        log("CLOSE SPRING FINISHED — resetting content");
-        resetContent();
-      } else {
-        log(
-          "CLOSE SPRING — stale, skipping resetContent",
-          capturedGeneration,
-          closeGenerationRef.current,
-        );
-      }
-    },
-    [resetContent],
-  );
-
-useEffect(() => {
-  if (visible) {
-    translateY.value = SCREEN_HEIGHT;
-    closeGenerationRef.current += 1;
-    justOpenedRef.current = true;
-
-    log("OPEN START", {
-      trayId,
-      footerMeasured,
-      contentMeasured,
-      footer: measuredFooterHeightRef.current,
-      hadExistingContent: renderedTrayId !== undefined,
-      existingTrayId: renderedTrayId,
-    });
-
-    setRenderedTrayId(trayId);
-    setRenderedContent(content);
-    setRenderedFooter(footer);
-
-    setLayoutEnabled(false);
-    setContentMeasured(false);
-    setFooterMeasured(false);
-
-    const needsFooter = !!footer;
-
-    if (!contentMeasured || (needsFooter && !footerMeasured)) {
-      log("OPEN — waiting for measurement");
-      setPendingOpen(true);
-    } else {
-      doOpenSpring();
-    }
-  } else {
-    log("CLOSE START", { renderedTrayId });
-
-    const myGeneration = ++closeGenerationRef.current;
-
-    setPendingOpen(false);
-    setLayoutEnabled(false);
-    active.value = false;
-    animFullScreenBg.value = 0;
-
-    translateY.value = withSpring(SCREEN_HEIGHT, SPRING_CONFIG, (finished) => {
-      if (finished) {
-        runOnJS(checkAndReset)(myGeneration);
-      }
-    });
-  }
-}, [visible]); 
+  const handleCloseSpringFinished = useCallback(() => {
+    log("CLOSE SPRING FINISHED — resetting tray state");
+    presentation.actions.clearFullScreenBackground();
+    presentation.actions.resetPresentationMode();
+    renderState.actions.clear();
+    measurements.actions.reset();
+  }, [
+    measurements.actions.reset,
+    presentation.actions.clearFullScreenBackground,
+    presentation.actions.resetPresentationMode,
+    renderState.actions.clear,
+  ]);
 
   useEffect(() => {
-    const needsFooter = !!renderedFooter;
+    if (visible) {
+      translateY.value = SCREEN_HEIGHT;
+      closeGeneration.value += 1;
+      justOpenedRef.current = true;
 
-    if (!pendingOpen || !contentMeasured || (needsFooter && !footerMeasured)) {
+      log("OPEN START", {
+        trayId,
+        footer: measurements.shared.measuredFooterHeight.value,
+        hadExistingContent: renderState.state.renderedTrayId !== undefined,
+        existingTrayId: renderState.state.renderedTrayId,
+      });
+
+      renderState.actions.showLatestSnapshot();
+      measurements.actions.beginOpenMeasurement(!!footer);
+      presentation.actions.applyPresentationMode(
+        fullScreen,
+        fullScreen ? SCREEN_HEIGHT : undefined,
+      );
+      log("OPEN — waiting for measurement");
+    } else {
+      log("CLOSE START", { renderedTrayId: renderState.state.renderedTrayId });
+
+      const myGeneration = closeGeneration.value + 1;
+      closeGeneration.value = myGeneration;
+
+      measurements.actions.prepareForClose();
+      active.value = false;
+
+      translateY.value = withSpring(
+        SCREEN_HEIGHT,
+        TRAY_SPRING_CONFIG,
+        (finished) => {
+          if (!finished) {
+            return;
+          }
+
+          if (closeGeneration.value === myGeneration) {
+            runOnJS(handleCloseSpringFinished)();
+          } else {
+            runOnJS(log)(
+              "CLOSE SPRING — stale, skipping reset",
+              myGeneration,
+              closeGeneration.value,
+            );
+          }
+        },
+      );
+    }
+    // Visibility changes are the only lifecycle boundary for open/close.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
+
+  useEffect(() => {
+    if (!measurements.state.isReadyToOpen) {
       return;
     }
 
     log("PENDING OPEN — all measurements ready", {
-      footer: measuredFooterHeightRef.current,
+      footer: measurements.shared.measuredFooterHeight.value,
       content: contentHeight.value,
-      needsFooter,
+      needsFooter: !!renderState.state.renderedFooter,
     });
 
-    setPendingOpen(false);
+    measurements.actions.completePendingOpen();
     doOpenSpring();
   }, [
     contentHeight,
-    contentMeasured,
     doOpenSpring,
-    footerMeasured,
-    pendingOpen,
-    renderedFooter,
+    measurements.actions.completePendingOpen,
+    measurements.shared.measuredFooterHeight,
+    measurements.state.isReadyToOpen,
+    renderState.state.renderedFooter,
   ]);
 
-useEffect(() => {
-  if (!visible) return;
+  useEffect(() => {
+    if (!visible) return;
 
-  if (justOpenedRef.current) {
-    justOpenedRef.current = false;
-    return;
-  }
+    if (justOpenedRef.current) {
+      justOpenedRef.current = false;
+      return;
+    }
 
-  log("TRAY CHANGE", { trayId });
+    const fs = fullScreen;
+    const renderedTrayId = renderState.state.renderedTrayId;
+    const previousContentHeight =
+      measurements.actions.getCachedContentHeight(renderedTrayId) ??
+      contentHeight.value;
+    const nextCachedContentHeight =
+      measurements.actions.getCachedContentHeight(trayId);
 
-  animFullScreenBg.value = 0;
-  setLayoutEnabled(!fullScreen);
+    log("TRAY CHANGE", {
+      trayId,
+      incomingFullScreen: fullScreen,
+      renderedTrayId,
+      renderedFullScreen: renderState.state.renderedFullScreen,
+      contentHeight: contentHeight.value,
+      footerHeight: footerHeight.value,
+      layoutEnabled: measurements.state.layoutEnabled,
+      previousContentHeight,
+      nextCachedContentHeight,
+    });
 
-  if (fullScreen) {
-    // Lock floor before content swap so tray can't shrink
-    animMinHeight.value = contentHeight.value;
-  }
+    presentation.actions.clearFullScreenBackground();
+    measurements.actions.setLayoutAnimationEnabled(!fs);
 
-  // Always apply — handles both expanding TO fullScreen
-  // and resetting animMinHeight/margin/radius back when leaving it
-  applyPresentationMode();
+    if (nextCachedContentHeight !== undefined) {
+      measurements.actions.setCachedContentHeight(trayId);
+    }
 
-  setRenderedContent(content);
-  setRenderedFooter(footer);
-  setRenderedTrayId(trayId);
-}, [animFullScreenBg, animMinHeight, applyPresentationMode, content, contentHeight, footer, fullScreen, trayId, visible]);
+    if (fs) {
+      animMinHeight.value = previousContentHeight;
+    }
+
+    presentation.actions.applyPresentationMode(
+      fs,
+      fs ? previousContentHeight : undefined,
+    );
+    renderState.actions.showLatestSnapshot();
+    // Tray identity changes coordinate the swap, presentation, and layout mode together.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trayId, visible, fullScreen]);
+
+  useEffect(() => {
+    if (!visible) {
+      return;
+    }
+
+    renderState.actions.syncRenderedNodes(trayId);
+  }, [
+    className,
+    containerStyle,
+    content,
+    footer,
+    footerClassName,
+    footerStyle,
+    fullScreen,
+    renderState.actions.syncRenderedNodes,
+    trayId,
+    visible,
+  ]);
+
+  useEffect(() => {
+    if (!visible) {
+      return;
+    }
+
+    log("LIVE STEP PROPS", {
+      trayId,
+      fullScreen,
+      hasContent: content != null,
+      hasFooter: footer != null,
+      hasContainerStyle: containerStyle != null,
+      hasFooterStyle: footerStyle != null,
+      className,
+      footerClassName,
+    });
+  }, [
+    className,
+    containerStyle,
+    content,
+    footer,
+    footerClassName,
+    footerStyle,
+    fullScreen,
+    trayId,
+    visible,
+  ]);
 
   useEffect(() => {
     log("RENDERED CONTENT CHANGED", {
-      trayId: renderedTrayId,
-      hasContent: renderedContent !== null,
+      trayId: renderState.state.renderedTrayId,
+      hasContent: renderState.state.renderedContent !== null,
+      fullScreen: renderState.state.renderedFullScreen,
+      hasFooter: renderState.state.renderedFooter !== null,
     });
-  }, [renderedContent, renderedTrayId]);
-
-  const handleContentLayout = useCallback(
-    (e: LayoutChangeEvent) => {
-      const h = e.nativeEvent.layout.height;
-      contentHeight.value = h;
-
-      if (!contentMeasured && renderedTrayId !== undefined) {
-        setContentMeasured(true);
-      }
-
-      log("CONTENT onLayout", { height: h, trayId: renderedTrayId });
-    },
-    [contentHeight, contentMeasured, renderedTrayId],
-  );
-
-  const handleVisibleFooterLayout = useCallback(
-    (e: LayoutChangeEvent) => {
-      if (!renderedFooter) return;
-
-      const h = e.nativeEvent.layout.height;
-
-      log("VISIBLE FOOTER onLayout", {
-        height: h,
-        measuredRef: measuredFooterHeightRef.current,
-        delta: h - measuredFooterHeightRef.current,
-      });
-
-      footerHeight.value = h;
-    },
-    [footerHeight, renderedFooter],
-  );
-
-  const handleMeasureFooterLayout = useCallback(
-    (e: LayoutChangeEvent) => {
-      const h = e.nativeEvent.layout.height;
-      log("OFFSCREEN FOOTER onLayout", { height: h });
-      measuredFooterHeightRef.current = h;
-      footerHeight.value = h;
-      setFooterMeasured(true);
-    },
-    [footerHeight],
-  );
+  }, [
+    renderState.state.renderedContent,
+    renderState.state.renderedFooter,
+    renderState.state.renderedFullScreen,
+    renderState.state.renderedTrayId,
+  ]);
 
   const handleRequestClose = useCallback(() => {
     onClose?.();
@@ -356,24 +352,31 @@ useEffect(() => {
       animMargin,
       animRadius,
       animBottom,
+      animHeight,
       animMinHeight,
       animFullScreenBg,
       totalHeight,
       progress,
     },
     state: {
-      layoutEnabled,
-      footerMeasured,
-      contentMeasured,
-      pendingOpen,
-      renderedFooter,
-      renderedContent,
-      renderedTrayId,
+      layoutEnabled: measurements.state.layoutEnabled,
+      footerMeasured: measurements.state.footerMeasured,
+      contentMeasured: measurements.state.contentMeasured,
+      pendingOpen: measurements.state.pendingOpen,
+      renderedFooter: renderState.state.renderedFooter,
+      renderedContent: renderState.state.renderedContent,
+      renderedTrayId: renderState.state.renderedTrayId,
+      renderedFullScreen: renderState.state.renderedFullScreen,
+      renderedContainerStyle: renderState.state.renderedContainerStyle,
+      renderedClassName: renderState.state.renderedClassName,
+      renderedFooterStyle: renderState.state.renderedFooterStyle,
+      renderedFooterClassName: renderState.state.renderedFooterClassName,
+      measureFooter: measurements.state.shouldMeasureFooter
+        ? renderState.state.renderedFooter
+        : null,
     },
     handlers: {
-      handleContentLayout,
-      handleVisibleFooterLayout,
-      handleMeasureFooterLayout,
+      ...measurements.handlers,
       handleRequestClose,
     },
     imperativeApi,

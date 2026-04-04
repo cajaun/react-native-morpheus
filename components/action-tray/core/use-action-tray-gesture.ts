@@ -20,23 +20,37 @@ export const useActionTrayGesture = ({
   return useMemo(() => {
     return Gesture.Pan()
       .enabled(!fullScreen)
+
       .onStart(() => {
-        context.value = { y: translateY.value };
+      
+        context.value = { y: Math.max(0, translateY.value) };
       })
+
       .onUpdate((e) => {
-        if (e.translationY >= 0) {
-          translateY.value = e.translationY + context.value.y;
-        }
+        const raw = e.translationY + context.value.y;
+
+     
+        const resisted = raw > 0 ? raw : raw * 0.2;
+
+    
+        translateY.value = Math.max(0, resisted);
       })
+
       .onEnd((e) => {
-        const projectedEnd = translateY.value + e.velocityY / 60;
+        const closeThreshold = totalHeight.value * 0.4;
+
         const shouldClose =
-          projectedEnd > totalHeight.value * 0.5 || e.velocityY > 1000;
+          translateY.value > closeThreshold ||
+          (translateY.value > 20 && e.velocityY > 1200); 
 
         if (shouldClose) {
           runOnJS(onRequestClose)();
         } else {
-          translateY.value = withSpring(0);
+          translateY.value = withSpring(0, {
+            damping: 25,
+            stiffness: 250,
+            overshootClamping: true,
+          });
         }
       });
   }, [fullScreen, onRequestClose, context, totalHeight, translateY]);

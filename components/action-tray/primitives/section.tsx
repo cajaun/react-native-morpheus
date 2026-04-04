@@ -4,7 +4,8 @@ import {
   ScrollView,
   StyleSheet,
   Dimensions,
-  Platform,
+  StyleProp,
+  ViewStyle,
 } from "react-native";
 import { TRAY_SECTION_GAP } from "../core/constants";
 
@@ -14,21 +15,37 @@ type TraySectionProps = {
   children: React.ReactNode;
   scrollable?: boolean;
   maxHeight?: number;
+  style?: StyleProp<ViewStyle>;
+  className?: string;
+  contentContainerStyle?: StyleProp<ViewStyle>;
+  contentClassName?: string;
 };
 
 export const TraySection: React.FC<TraySectionProps> = ({
   children,
   scrollable = false,
   maxHeight,
+
+  style,
+  className,
+  contentContainerStyle,
+  contentClassName,
 }) => {
   const height = maxHeight ?? SCREEN_HEIGHT * 0.65;
 
   if (scrollable) {
     return (
-      <View style={{ height }}>
+      <View
+        style={[{ height }, style]}
+        className={className}
+      >
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            contentContainerStyle,
+          ]}
+          className={contentClassName}
           showsVerticalScrollIndicator={false}
           bounces={true}
           overScrollMode="always"
@@ -40,7 +57,14 @@ export const TraySection: React.FC<TraySectionProps> = ({
     );
   }
 
-  return <View style={styles.section}>{children}</View>;
+  return (
+    <View
+      style={[styles.section, style]}
+      className={className}
+    >
+      {children}
+    </View>
+  );
 };
 
 const styles = StyleSheet.create({

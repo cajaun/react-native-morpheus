@@ -1,16 +1,20 @@
 import React from "react";
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, StyleProp, ViewStyle } from "react-native";
 
 export const TrayHeader: React.FC<{
   children: React.ReactNode;
-}> = ({ children }) => {
-  return <View style={styles.header}>{children}</View>;
+  style?: StyleProp<ViewStyle>;
+  className?: string;
+}> = ({ children, style, className }) => {
+  return (
+    <View className={className} style={[styles.header, style]}>
+      {children}
+    </View>
+  );
 };
 
 const styles = StyleSheet.create({
-  header: {
-    
-  },
+  header: {},
 });
 
 TrayHeader.displayName = "TrayHeader";

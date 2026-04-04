@@ -27,7 +27,7 @@ const OnboardingExample = () => {
       </Tray.Trigger>
 
       {/* STEP 1 */}
-      <Tray.Content scale >
+      <Tray.Content scale className="bg-white">
         <Tray.Body>
           <Tray.Header>
             <Header
@@ -55,7 +55,7 @@ const OnboardingExample = () => {
                 letterSpacing: 0.2,
               }}
             >
-              This is a test title
+              This is a test 
             </Text>
 
             <Text
@@ -75,7 +75,7 @@ const OnboardingExample = () => {
       </Tray.Content>
 
       {/* STEP 2 */}
-      <Tray.Content scale >
+      <Tray.Content scale className="bg-white">
         <Tray.Body>
           <Tray.Header>
             <Header
@@ -147,7 +147,7 @@ const OnboardingExample = () => {
         </Tray.Body>
       </Tray.Content>
 
-      <Tray.Content scale>
+      <Tray.Content scale className="bg-white">
         <Tray.Body>
           <Tray.Header>
             <Header
@@ -168,6 +168,18 @@ const OnboardingExample = () => {
           />
 
           <Tray.Section scrollable>
+
+              <Text
+              className=" font-sfMedium"
+              style={{
+                fontSize: 21,
+                lineHeight: 28,
+                letterSpacing: 0.2,
+              }}
+            >
+              Scroll heading
+            </Text>
+
             <Text
               className="text-[#94999F] font-sfMedium "
               style={{
@@ -229,7 +241,7 @@ const OnboardingExample = () => {
         </Tray.Body>
       </Tray.Content>
 
-      <Tray.Content scale >
+      <Tray.Content scale className="bg-white">
         <Tray.Body>
           <Tray.Header>
             <Header
@@ -250,6 +262,17 @@ const OnboardingExample = () => {
           />
 
           <Tray.Section>
+
+                      <Text
+              className=" font-sfMedium"
+              style={{
+                fontSize: 21,
+                lineHeight: 28,
+                letterSpacing: 0.2,
+              }}
+            >
+              Different heading
+            </Text>
             <Text
               className="text-[#94999F] font-sfMedium "
               style={{
@@ -264,7 +287,7 @@ const OnboardingExample = () => {
         </Tray.Body>
       </Tray.Content>
 
-      <Tray.Content scale fullScreen>
+      <Tray.Content scale className="bg-white">
         <Tray.Body>
           <Tray.Header>
             <Header
@@ -296,8 +319,7 @@ const OnboardingExample = () => {
               This is some example test that spans over multiple lines bla bla
             </Text>
 
-
- <Text
+            <Text
               className="text-[#94999F] font-sfMedium "
               style={{
                 fontSize: 21,
@@ -305,7 +327,7 @@ const OnboardingExample = () => {
                 letterSpacing: 0.2,
               }}
             >
-                   This is some example test that spans over multiple lines bla bla
+              This is some example test that spans over multiple lines bla bla
               Lorem ipsum dolor sit amet consectetur adipisicing elit. Officia,
               quas eum quia deserunt odit atque voluptate velit mollitia
               quisquam sit officiis praesentium voluptates voluptatem nemo
@@ -329,8 +351,7 @@ const OnboardingExample = () => {
         </Tray.Body>
       </Tray.Content>
 
-
-      <Tray.Content scale >
+      <Tray.Content scale className="bg-white">
         <Tray.Body>
           <Tray.Header>
             <Header
@@ -379,9 +400,7 @@ const OnboardingExample = () => {
         </Tray.Body>
       </Tray.Content>
 
-
-
-      <Tray.Footer>
+      <Tray.Footer className="bg-white">
         <AnimatedOnboardingButton
           step={index}
           totalSteps={total}

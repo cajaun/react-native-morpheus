@@ -1,15 +1,8 @@
 import React, { createContext, useContext } from "react";
 
 export type TrayDefinition = {
-  contents: ((
-    stepKey?: string,
-    skipEntering?: boolean,
-    skipExiting?: boolean,
-    step?: number,
-    total?: number,
-    fullScreen?: boolean
-  ) => React.ReactNode)[];
-  footer?: (step?: number, total?: number) => React.ReactNode;
+contents: (() => React.ReactElement)[];
+footer?: () => React.ReactElement;
   fullScreenSteps?: boolean[];
 };
 
