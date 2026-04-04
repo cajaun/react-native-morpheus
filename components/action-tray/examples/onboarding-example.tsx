@@ -29,7 +29,8 @@ const OnboardingExample = () => {
       {/* STEP 1 */}
       <Tray.Content scale className="bg-white">
         <Tray.Body>
-          <Tray.Header>
+
+          <Tray.Header withSeparator>
             <Header
               step={0}
               leftLabel="Content One"
@@ -38,13 +39,7 @@ const OnboardingExample = () => {
             />
           </Tray.Header>
 
-          <View
-            style={{
-              height: 1,
-              width: "100%",
-              backgroundColor: "#F7F7F7",
-            }}
-          />
+          
 
           <Tray.Section>
             <Text
@@ -55,7 +50,7 @@ const OnboardingExample = () => {
                 letterSpacing: 0.2,
               }}
             >
-              This is a test 
+              This is a test
             </Text>
 
             <Text
@@ -87,13 +82,7 @@ const OnboardingExample = () => {
             />
           </Tray.Header>
 
-          <View
-            style={{
-              height: 1,
-              width: "100%",
-              backgroundColor: "#F7F7F7",
-            }}
-          />
+         
 
           <Tray.Section>
             <Text
@@ -149,7 +138,7 @@ const OnboardingExample = () => {
 
       <Tray.Content scale className="bg-white">
         <Tray.Body>
-          <Tray.Header>
+          <Tray.Header withSeparator>
             <Header
               step={2}
               leftLabel="Content Three"
@@ -159,17 +148,10 @@ const OnboardingExample = () => {
             />
           </Tray.Header>
 
-          <View
-            style={{
-              height: 1,
-              width: "100%",
-              backgroundColor: "#F7F7F7",
-            }}
-          />
+        
 
           <Tray.Section scrollable>
-
-              <Text
+            <Text
               className=" font-sfMedium"
               style={{
                 fontSize: 21,
@@ -243,7 +225,7 @@ const OnboardingExample = () => {
 
       <Tray.Content scale className="bg-white">
         <Tray.Body>
-          <Tray.Header>
+          <Tray.Header  withSeparator>
             <Header
               step={3}
               leftLabel="Content Four"
@@ -253,17 +235,9 @@ const OnboardingExample = () => {
             />
           </Tray.Header>
 
-          <View
-            style={{
-              height: 1,
-              width: "100%",
-              backgroundColor: "#F7F7F7",
-            }}
-          />
-
+     
           <Tray.Section>
-
-                      <Text
+            <Text
               className=" font-sfMedium"
               style={{
                 fontSize: 21,
@@ -289,7 +263,7 @@ const OnboardingExample = () => {
 
       <Tray.Content scale className="bg-white">
         <Tray.Body>
-          <Tray.Header>
+          <Tray.Header  withSeparator>
             <Header
               step={4}
               leftLabel="Content Five"
@@ -299,14 +273,7 @@ const OnboardingExample = () => {
             />
           </Tray.Header>
 
-          <View
-            style={{
-              height: 1,
-              width: "100%",
-              backgroundColor: "#F7F7F7",
-            }}
-          />
-
+     
           <Tray.Section>
             <Text
               className="text-[#94999F] font-sfMedium "
@@ -353,7 +320,7 @@ const OnboardingExample = () => {
 
       <Tray.Content scale className="bg-white">
         <Tray.Body>
-          <Tray.Header>
+          <Tray.Header  withSeparator>
             <Header
               step={5}
               leftLabel="Content Six"
@@ -363,13 +330,7 @@ const OnboardingExample = () => {
             />
           </Tray.Header>
 
-          <View
-            style={{
-              height: 1,
-              width: "100%",
-              backgroundColor: "#F7F7F7",
-            }}
-          />
+   
 
           <Tray.Section>
             <Text

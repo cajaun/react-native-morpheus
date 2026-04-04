@@ -21,8 +21,4 @@ export const styles = StyleSheet.create({
     opacity: 0,
     top: -10000,
   },
-  fullScreenBg: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "white",
-  },
 });

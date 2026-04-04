@@ -1,13 +1,12 @@
 import React, { createContext, useContext } from "react";
 
 export type TrayDefinition = {
-contents: (() => React.ReactElement)[];
-footer?: () => React.ReactElement;
-  fullScreenSteps?: boolean[];
+  contents: (() => React.ReactElement)[];
+  footer?: () => React.ReactElement;
 };
 
 export type TrayContextValue = {
-  activeTrayId: string | null; 
+  activeTrayId: string | null;
   openTray: (id: string) => void;
   close: () => void;
   next: () => void;
@@ -15,7 +14,11 @@ export type TrayContextValue = {
   index: number;
   total: number;
   registerTray: (id: string, def: TrayDefinition) => void;
-  registerFocusable: (ref: React.RefObject<any>) => void;
+  registerFocusable: (
+    trayId: string | null,
+    ref: React.RefObject<any>,
+  ) => () => void;
+  dismissKeyboard: () => void;
 };
 
 const TrayContext = createContext<TrayContextValue | null>(null);

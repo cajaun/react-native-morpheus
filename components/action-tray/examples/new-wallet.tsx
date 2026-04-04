@@ -50,8 +50,8 @@ const PayFromTray = () => {
 
       <Tray.Content scale className="bg-white ">
         <Tray.Body>
-          {/* HEADER */}
-          <Tray.Header>
+   
+          <Tray.Header  withSeparator>
             <Header
               step={0}
               leftLabel="Pay From"
@@ -60,13 +60,7 @@ const PayFromTray = () => {
               onClose={() => close()}
             />
           </Tray.Header>
-          {/* DIVIDER */}
-          <View
-            style={{
-              height: 1,
-              backgroundColor: "#F2F2F2",
-            }}
-          />
+     
 
           <Tray.Section>
             {wallets.map((wallet) => {
@@ -176,8 +170,6 @@ const PayFromTray = () => {
         </Tray.Body>
       </Tray.Content>
 
-
-
       <Tray.Content scale className="bg-white">
         <Tray.Body>
           <Tray.Header>
@@ -190,12 +182,7 @@ const PayFromTray = () => {
             />
           </Tray.Header>
 
-          <View
-            style={{
-              height: 1,
-              backgroundColor: "#F2F2F2",
-            }}
-          />
+       
 
           <Tray.Section>
             <Text

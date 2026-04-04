@@ -38,7 +38,11 @@ const Send = () => {
                 }}
               >
                 <View className="w-12 h-12 rounded-full  items-center justify-center mr-3 bg-[#358EFF]">
-                  <SymbolView name="paperplane.fill" tintColor="#fff" weight="bold" />
+                  <SymbolView
+                    name="paperplane.fill"
+                    tintColor="#fff"
+                    weight="bold"
+                  />
                 </View>
 
                 <View className="flex-1">
@@ -102,7 +106,11 @@ const Send = () => {
 
               <PressableScale className="flex-row items-center bg-[#0F0F0F] border border-[#161616] rounded-3xl p-4">
                 <View className="w-12 h-12 rounded-full  items-center justify-center mr-3 bg-[#4BCF6C]">
-                  <SymbolView name="arrow.down" tintColor="#fff"  weight="bold" />
+                  <SymbolView
+                    name="arrow.down"
+                    tintColor="#fff"
+                    weight="bold"
+                  />
                 </View>
 
                 <View className="flex-1">
@@ -137,7 +145,6 @@ const Send = () => {
       <Tray.Content
         scale
         className="bg-black"
-        fullScreen
         style={{ paddingHorizontal: 0 }}
       >
         <Tray.Body>
@@ -228,7 +235,7 @@ const Send = () => {
                       letterSpacing: 0.2,
                     }}
                   >
-                  Test
+                    Test
                   </Text>
                   <Text
                     className="text-[#6B6F76] font-sfMedium "

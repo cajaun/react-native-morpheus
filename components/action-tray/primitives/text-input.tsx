@@ -1,14 +1,27 @@
-import React, { useRef, useEffect } from "react";
+import React, {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+} from "react";
 import { TextInput, TextInputProps } from "react-native";
 import { useTray } from "../context/context";
+import { useTrayScope } from "../context/root";
 
-export const TrayTextInput = (props: TextInputProps) => {
-  const ref = useRef<TextInput>(null);
-  const { registerFocusable } = useTray();
+export const TrayTextInput = forwardRef<TextInput, TextInputProps>(
+  (props, forwardedRef) => {
+    const ref = useRef<TextInput>(null);
+    const trayId = useTrayScope();
+    const { registerFocusable } = useTray();
 
-  useEffect(() => {
-    registerFocusable(ref);
-  }, [registerFocusable]);
+    useImperativeHandle(forwardedRef, () => ref.current as TextInput);
 
-  return <TextInput ref={ref} {...props} />;
-};
+    useEffect(() => {
+      return registerFocusable(trayId, ref);
+    }, [registerFocusable, trayId]);
+
+    return <TextInput ref={ref} {...props} />;
+  },
+);
+
+TrayTextInput.displayName = "TrayTextInput";

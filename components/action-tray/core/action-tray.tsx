@@ -21,9 +21,10 @@ const ActionTray = forwardRef<ActionTrayRef, ActionTrayProps>(
       visible,
       containerStyle,
       className,
-      fullScreen = false,
       footerClassName,
       footerStyle,
+      keyboardHeight: trayKeyboardHeight,
+      dismissKeyboard,
     },
     ref,
   ) => {
@@ -32,11 +33,12 @@ const ActionTray = forwardRef<ActionTrayRef, ActionTrayProps>(
       content,
       footer,
       trayId,
-      fullScreen,
       containerStyle,
       className,
       footerStyle,
       footerClassName,
+      keyboardHeight: trayKeyboardHeight,
+      dismissKeyboard,
       onClose,
     });
 
@@ -44,15 +46,8 @@ const ActionTray = forwardRef<ActionTrayRef, ActionTrayProps>(
       shared: {
         translateY,
         footerHeight,
-        active,
         context,
         hasFooter,
-        animMargin,
-        animRadius,
-        animBottom,
-        animHeight,
-        animMinHeight,
-        animFullScreenBg,
         totalHeight,
         progress,
       },
@@ -61,7 +56,6 @@ const ActionTray = forwardRef<ActionTrayRef, ActionTrayProps>(
         renderedFooter,
         renderedContent,
         renderedTrayId,
-        renderedFullScreen,
         renderedContainerStyle,
         renderedClassName,
         renderedFooterStyle,
@@ -80,10 +74,11 @@ const ActionTray = forwardRef<ActionTrayRef, ActionTrayProps>(
     useImperativeHandle(ref, () => imperativeApi, [imperativeApi]);
 
     const gesture = useActionTrayGesture({
-      fullScreen: renderedFullScreen,
       translateY,
       totalHeight,
       context,
+      keyboardHeight: trayKeyboardHeight,
+      dismissKeyboard,
       onRequestClose: handleRequestClose,
     });
 
@@ -94,15 +89,10 @@ const ActionTray = forwardRef<ActionTrayRef, ActionTrayProps>(
       contentPaddingStyle,
       dragStyle,
     } = useActionTrayAnimatedStyles({
-      animMargin,
-      animRadius,
-      animBottom,
-      animHeight,
-      animMinHeight,
-      animFullScreenBg,
       translateY,
       hasFooter,
       footerHeight,
+      keyboardHeight: trayKeyboardHeight,
     });
 
     const layoutAnimationConfig = useMemo(
@@ -110,9 +100,7 @@ const ActionTray = forwardRef<ActionTrayRef, ActionTrayProps>(
       [],
     );
     const shouldUseLayoutAnimation =
-      layoutEnabled &&
-      !(visible && trayId !== renderedTrayId) &&
-      !(visible && fullScreen !== renderedFullScreen);
+      layoutEnabled && !(visible && trayId !== renderedTrayId);
 
     return (
       <>
@@ -137,15 +125,9 @@ const ActionTray = forwardRef<ActionTrayRef, ActionTrayProps>(
 
         <Backdrop
           onTap={handleRequestClose}
-          isActive={active}
+          isRendered={renderedTrayId !== undefined}
           progress={progress}
-          totalHeight={totalHeight}
         />
-
-        {/* <Animated.View
-          style={[styles.fullScreenBg, fullScreenBgStyle]}
-          pointerEvents="none"
-        /> */}
 
         <GestureDetector gesture={gesture}>
           <Animated.View
@@ -162,8 +144,6 @@ const ActionTray = forwardRef<ActionTrayRef, ActionTrayProps>(
             <Animated.View
               style={styles.content}
               // Measure the intrinsic content stack, not the animated shell.
-              // The shell can be fullscreen-sized during presentation swaps,
-              // which pollutes the next step's measurement with stale heights.
               onLayout={handleContentLayout}
             >
               <Animated.View style={contentPaddingStyle}>

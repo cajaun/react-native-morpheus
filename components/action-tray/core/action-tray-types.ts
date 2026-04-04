@@ -1,5 +1,6 @@
 import React from "react";
 import { StyleProp, ViewStyle } from "react-native";
+import type { SharedValue } from "react-native-reanimated";
 
 export type ActionTrayProps = {
   visible: boolean;
@@ -8,11 +9,12 @@ export type ActionTrayProps = {
   content?: React.ReactNode;
   footer?: React.ReactNode;
   trayId?: string;
-  fullScreen?: boolean;
   containerStyle?: StyleProp<ViewStyle>;
   className?: string;
   footerStyle?: StyleProp<ViewStyle>;
   footerClassName?: string;
+  keyboardHeight: SharedValue<number>;
+  dismissKeyboard: () => void;
 };
 
 export type ActionTrayRef = {
@@ -25,7 +27,6 @@ export type RenderedTrayState = {
   content: React.ReactNode;
   footer: React.ReactNode;
   trayId?: string;
-  fullScreen: boolean;
   containerStyle?: StyleProp<ViewStyle>;
   className?: string;
   footerStyle?: StyleProp<ViewStyle>;

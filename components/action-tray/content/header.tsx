@@ -30,44 +30,44 @@ export default function Header({
   };
 
   return (
-    <View >
-      <View
-        style={{
-          paddingVertical: 28,
-          justifyContent: "center",
-        }}
-      >
-        <View>
-          {typeof leftLabel === "string" ? (
-            <Text className="font-sfMedium" style={{ fontSize: 24, lineHeight: 34, letterSpacing: 0.3 }}>
-              {leftLabel}
-            </Text>
-          ) : (
-            leftLabel
-          )}
-        </View>
-
-        {shouldClose && (
-          <PressableScale
-            onPress={handlePress}
-            className="rounded-full bg-[#F5F5FA] items-center justify-center"
-            style={{
-              position: "absolute",
-              right: 0,
-              height: 36,
-              width: 36,
-            }}
+    <View
+      style={{
+        justifyContent: "center",
+      }}
+    >
+      <View>
+        {typeof leftLabel === "string" ? (
+          <Text
+            className="font-sfMedium"
+            style={{ fontSize: 24, lineHeight: 34, letterSpacing: 0.3 }}
           >
-            <SymbolView
-              name="xmark"
-              type="palette"
-              size={18}
-              weight="bold"
-              tintColor={"#949595"}
-            />
-          </PressableScale>
+            {leftLabel}
+          </Text>
+        ) : (
+          leftLabel
         )}
       </View>
+
+      {shouldClose && (
+        <PressableScale
+          onPress={handlePress}
+          className="rounded-full bg-[#F5F5FA] items-center justify-center"
+          style={{
+            position: "absolute",
+            right: 0,
+            height: 32,
+            width: 32,
+          }}
+        >
+          <SymbolView
+            name="xmark"
+            type="palette"
+            size={16}
+            weight="bold"
+            tintColor={"#949595"}
+          />
+        </PressableScale>
+      )}
     </View>
   );
 }

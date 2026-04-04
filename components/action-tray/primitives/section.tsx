@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  Platform,
   View,
   ScrollView,
   StyleSheet,
@@ -35,21 +36,19 @@ export const TraySection: React.FC<TraySectionProps> = ({
 
   if (scrollable) {
     return (
-      <View
-        style={[{ height }, style]}
-        className={className}
-      >
+      <View style={[{ height }, style]} className={className}>
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={[
-            styles.scrollContent,
-            contentContainerStyle,
-          ]}
+          contentContainerStyle={[styles.scrollContent, contentContainerStyle]}
           className={contentClassName}
           showsVerticalScrollIndicator={false}
           bounces={true}
           overScrollMode="always"
           scrollEventThrottle={16}
+          keyboardDismissMode={
+            Platform.OS === "ios" ? "interactive" : "on-drag"
+          }
+          keyboardShouldPersistTaps="handled"
         >
           {children}
         </ScrollView>
@@ -58,10 +57,7 @@ export const TraySection: React.FC<TraySectionProps> = ({
   }
 
   return (
-    <View
-      style={[styles.section, style]}
-      className={className}
-    >
+    <View style={[styles.section, style]} className={className}>
       {children}
     </View>
   );
@@ -70,16 +66,15 @@ export const TraySection: React.FC<TraySectionProps> = ({
 const styles = StyleSheet.create({
   section: {
     gap: TRAY_SECTION_GAP,
-    paddingTop: 24,
-    paddingBottom: 24,
+    paddingVertical: TRAY_SECTION_GAP,
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
     gap: TRAY_SECTION_GAP,
-    paddingTop: 24,
-    paddingBottom: 24,
+    paddingTop: TRAY_SECTION_GAP,
+    paddingBottom: TRAY_SECTION_GAP,
     flexGrow: 1,
   },
 });

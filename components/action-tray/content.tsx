@@ -16,9 +16,8 @@ type Props = {
   skipExiting?: boolean;
   step?: number;
   total?: number;
-    style?: StyleProp<ViewStyle>;
+  style?: StyleProp<ViewStyle>;
   className?: string;
-  fullScreen?: boolean;
 };
 
 const createMorphEntering = (scale: boolean): EntryExitAnimationFunction => {
@@ -103,8 +102,7 @@ export const TrayContent: React.FC<Props> = ({
   skipExiting = false,
   step,
   total,
-  fullScreen,
-    style,
+  style,
   className,
 }) => {
   useEffect(() => {
@@ -112,7 +110,6 @@ export const TrayContent: React.FC<Props> = ({
       stepKey,
       step,
       total,
-      fullScreen,
       skipEntering,
       skipExiting,
       hasClassName: className != null,
@@ -120,7 +117,6 @@ export const TrayContent: React.FC<Props> = ({
     });
   }, [
     className,
-    fullScreen,
     skipEntering,
     skipExiting,
     step,
@@ -133,27 +129,25 @@ export const TrayContent: React.FC<Props> = ({
     log("TrayContent mounted", {
       stepKey,
       step,
-      fullScreen,
     });
 
     return () => {
       log("TrayContent unmounted", {
         stepKey,
         step,
-        fullScreen,
       });
     };
-  }, [fullScreen, step, stepKey]);
+  }, [step, stepKey]);
 
   return (
     <Animated.View
       key={stepKey}
       entering={skipEntering ? undefined : createMorphEntering(scale)}
       exiting={skipExiting ? undefined : createMorphExiting(scale)}
-            style={style}
+      style={style}
       className={className}
     >
-      {React.cloneElement(children as any, { step, total, fullScreen })}
+      {React.cloneElement(children as any, { step, total })}
     </Animated.View>
   );
 };

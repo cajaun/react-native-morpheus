@@ -1,70 +1,76 @@
 import { useAnimatedStyle } from "react-native-reanimated";
-import { HORIZONTAL_MARGIN } from "./constants";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  BORDER_RADIUS,
+  HORIZONTAL_MARGIN,
+  TRAY_KEYBOARD_GAP,
+} from "./constants";
 
 type Params = {
-  animMargin: { value: number };
-  animRadius: { value: number };
-  animBottom: { value: number };
-  animHeight: { value: number };
-  animMinHeight: { value: number };
-  animFullScreenBg: { value: number };
   translateY: { value: number };
   hasFooter: { value: boolean };
   footerHeight: { value: number };
+  keyboardHeight: { value: number };
 };
 
 export const useActionTrayAnimatedStyles = ({
-  animMargin,
-  animRadius,
-  animBottom,
-  animHeight,
-  animMinHeight,
-  animFullScreenBg,
   translateY,
   hasFooter,
   footerHeight,
+  keyboardHeight,
 }: Params) => {
-  const fullScreenBgStyle = useAnimatedStyle(() => ({
-    opacity: animFullScreenBg.value,
-  }));
+  const { bottom } = useSafeAreaInsets();
 
   const footerSpacerStyle = useAnimatedStyle(() => ({
     height: hasFooter.value ? footerHeight.value : 0,
   }));
 
-  const trayLayoutStyle = useAnimatedStyle(() => ({
-    left: animMargin.value,
-    right: animMargin.value,
-    borderRadius: animRadius.value,
-    bottom: animBottom.value,
-    height: animHeight.value > 0 ? animHeight.value : undefined,
-    minHeight: animMinHeight.value,
-  }));
+  const trayLayoutStyle = useAnimatedStyle(() => {
+    const keyboardBottom =
+      keyboardHeight.value > 0
+        ? keyboardHeight.value + TRAY_KEYBOARD_GAP
+        : 0;
+    const resolvedBottom = Math.max(bottom, keyboardBottom);
 
-  const footerContainerStyle = useAnimatedStyle(() => ({
-    left: animMargin.value,
-    right: animMargin.value,
-    bottom: animBottom.value,
-    borderTopLeftRadius: animRadius.value,
-    borderTopRightRadius: animRadius.value,
-    borderBottomLeftRadius: animRadius.value,
-    borderBottomRightRadius: animRadius.value,
-  }));
+    return {
+      left: HORIZONTAL_MARGIN,
+      right: HORIZONTAL_MARGIN,
+      borderRadius: BORDER_RADIUS,
+      bottom: resolvedBottom,
+    };
+  });
+
+  const footerContainerStyle = useAnimatedStyle(() => {
+    const keyboardBottom =
+      keyboardHeight.value > 0
+        ? keyboardHeight.value + TRAY_KEYBOARD_GAP
+        : 0;
+    const resolvedBottom = Math.max(bottom, keyboardBottom);
+
+    return {
+      left: HORIZONTAL_MARGIN,
+      right: HORIZONTAL_MARGIN,
+      bottom: resolvedBottom,
+      borderTopLeftRadius: BORDER_RADIUS,
+      borderTopRightRadius: BORDER_RADIUS,
+      borderBottomLeftRadius: BORDER_RADIUS,
+      borderBottomRightRadius: BORDER_RADIUS,
+    };
+  });
 
   const dragStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],
   }));
 
   const contentPaddingStyle = useAnimatedStyle(() => ({
-  paddingHorizontal: 0
-}));
+    paddingHorizontal: 0,
+  }));
 
   return {
-    fullScreenBgStyle,
     footerSpacerStyle,
     trayLayoutStyle,
     footerContainerStyle,
     dragStyle,
-      contentPaddingStyle,
+    contentPaddingStyle,
   };
 };

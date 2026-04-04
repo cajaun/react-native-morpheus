@@ -12,9 +12,8 @@ export const TrayRoot: React.FC<{ children: React.ReactNode }> = ({
   const reactId = useId();
   const trayId = useMemo(() => `tray-${reactId}`, [reactId]);
 
-const parsed = (() => {
+  const parsed = (() => {
     const outside: React.ReactNode[] = [];
-    const fullScreenSteps: boolean[] = [];
     const contents: any[] = [];
     let footer: any;
 
@@ -27,47 +26,44 @@ const parsed = (() => {
       const name = (child.type as any)?.displayName;
 
       if (name === "TrayContent") {
-        fullScreenSteps.push(!!(child.props as any).fullScreen);
-      contents.push(() => child as React.ReactElement);
+        contents.push(() => child as React.ReactElement);
         return;
       }
 
       if (name === "TrayFooter") {
-    footer = () => child as React.ReactElement;
+        footer = () => child as React.ReactElement;
         return;
       }
 
       outside.push(child);
     });
 
-  return { outside, contents, footer, fullScreenSteps };
-})();
+    return { outside, contents, footer };
+  })();
 
-const registrationSignature = useMemo(
-  () =>
-    React.Children.toArray(children)
-      .map((child) => {
-        if (!React.isValidElement(child)) {
-          return "outside";
-        }
+  const registrationSignature = useMemo(
+    () =>
+      React.Children.toArray(children)
+        .map((child) => {
+          if (!React.isValidElement(child)) {
+            return "outside";
+          }
 
-        const name = (child.type as any)?.displayName ?? "unknown";
-        const fullScreen = (child.props as any)?.fullScreen ? "fs" : "sheet";
-        const key = child.key ?? "nokey";
+          const name = (child.type as any)?.displayName ?? "unknown";
+          const key = child.key ?? "nokey";
 
-        return `${name}:${fullScreen}:${key}`;
-      })
-      .join("|"),
-  [children],
-);
+          return `${name}:${key}`;
+        })
+        .join("|"),
+    [children],
+  );
 
-useEffect(() => {
-  registerTray(trayId, {
-    contents: parsed.contents,
-    footer: parsed.footer,
-    fullScreenSteps: parsed.fullScreenSteps,
-  });
-}, [trayId, registerTray, registrationSignature]);
+  useEffect(() => {
+    registerTray(trayId, {
+      contents: parsed.contents,
+      footer: parsed.footer,
+    });
+  }, [trayId, registerTray, registrationSignature]);
 
   return (
     <TrayScopeContext.Provider value={trayId}>

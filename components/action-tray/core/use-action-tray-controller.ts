@@ -7,15 +7,20 @@ import React, {
 import { StyleProp, ViewStyle } from "react-native";
 import {
   runOnJS,
+  type SharedValue,
+  useAnimatedReaction,
   useDerivedValue,
   useSharedValue,
   withSpring,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { SCREEN_HEIGHT, TRAY_SPRING_CONFIG } from "./constants";
+import {
+  SCREEN_HEIGHT,
+  TRAY_KEYBOARD_GAP,
+  TRAY_SPRING_CONFIG,
+} from "./constants";
 import { log } from "./logger";
 import { useActionTrayMeasurements } from "./use-action-tray-measurements";
-import { useActionTrayPresentation } from "./use-action-tray-presentation";
 import { useActionTrayRenderState } from "./use-action-tray-render-state";
 
 type Params = {
@@ -23,11 +28,12 @@ type Params = {
   content?: React.ReactNode;
   footer?: React.ReactNode;
   trayId?: string;
-  fullScreen: boolean;
   containerStyle?: StyleProp<ViewStyle>;
   className?: string;
   footerStyle?: StyleProp<ViewStyle>;
   footerClassName?: string;
+  keyboardHeight: SharedValue<number>;
+  dismissKeyboard: () => void;
   onClose: () => void;
 };
 
@@ -36,11 +42,12 @@ export const useActionTrayController = ({
   content,
   footer,
   trayId,
-  fullScreen,
   containerStyle,
   className,
   footerStyle,
   footerClassName,
+  keyboardHeight,
+  dismissKeyboard,
   onClose,
 }: Params) => {
   const { bottom } = useSafeAreaInsets();
@@ -52,6 +59,7 @@ export const useActionTrayController = ({
   const context = useSharedValue({ y: 0 });
   const hasFooter = useSharedValue(false);
   const closeGeneration = useSharedValue(0);
+  const animationTravel = useSharedValue(SCREEN_HEIGHT);
 
   const justOpenedRef = useRef(false);
 
@@ -59,24 +67,11 @@ export const useActionTrayController = ({
     content,
     footer,
     trayId,
-    fullScreen,
     containerStyle,
     className,
     footerStyle,
     footerClassName,
   });
-
-  const presentation = useActionTrayPresentation({
-    fullScreen,
-  });
-  const {
-    animMargin,
-    animRadius,
-    animBottom,
-    animHeight,
-    animMinHeight,
-    animFullScreenBg,
-  } = presentation.shared;
 
   const measurements = useActionTrayMeasurements({
     contentHeight,
@@ -90,26 +85,75 @@ export const useActionTrayController = ({
   }, [hasFooter, renderState.state.renderedFooter]);
 
   const totalHeight = useDerivedValue(() => {
-    if (renderState.state.renderedFullScreen) {
-      return SCREEN_HEIGHT;
-    }
+    const keyboardInset =
+      keyboardHeight.value > 0
+        ? keyboardHeight.value + TRAY_KEYBOARD_GAP
+        : 0;
+    const trayBottomInset = Math.max(bottom, keyboardInset);
 
-    return contentHeight.value + footerHeight.value + bottom;
-  });
+    return contentHeight.value + footerHeight.value + trayBottomInset;
+  }, [bottom]);
+
+  const resolveClosedTranslateY = useCallback(
+    (nextFooterHeight = footerHeight.value) => {
+      const keyboardInset =
+        keyboardHeight.value > 0
+          ? keyboardHeight.value + TRAY_KEYBOARD_GAP
+          : 0;
+      const trayBottomInset = Math.max(bottom, keyboardInset);
+
+      return contentHeight.value + nextFooterHeight + trayBottomInset;
+    },
+    [bottom, contentHeight, footerHeight, keyboardHeight],
+  );
 
   const progress = useDerivedValue(() => {
-    if (totalHeight.value === 0) return 0;
-    const travel = Math.min(translateY.value, totalHeight.value);
-    return 1 - travel / totalHeight.value;
+    if (animationTravel.value <= 0) {
+      return 0;
+    }
+
+    const travel = Math.min(
+      Math.max(translateY.value, 0),
+      animationTravel.value,
+    );
+
+    return 1 - travel / animationTravel.value;
   });
 
+  useAnimatedReaction(
+    () => {
+      if (!visible) {
+        return -1;
+      }
+
+      if (Math.abs(translateY.value) > 0.5) {
+        return -1;
+      }
+
+      return totalHeight.value;
+    },
+    (nextTravel, previousTravel) => {
+      if (nextTravel > 0 && nextTravel !== previousTravel) {
+        animationTravel.value = nextTravel;
+      }
+    },
+    [visible],
+  );
+
   const doOpenSpring = useCallback(() => {
+    const measuredFooterHeight = measurements.shared.measuredFooterHeight.value;
+
     log("doOpenSpring", {
-      footer: measurements.shared.measuredFooterHeight.value,
+      footer: measuredFooterHeight,
       content: contentHeight.value,
     });
 
-    footerHeight.value = measurements.shared.measuredFooterHeight.value;
+    footerHeight.value = measuredFooterHeight;
+
+    const openTravel = resolveClosedTranslateY(measuredFooterHeight);
+
+    animationTravel.value = openTravel;
+    translateY.value = openTravel;
 
     translateY.value = withSpring(0, TRAY_SPRING_CONFIG, (finished) => {
       if (finished) {
@@ -121,25 +165,20 @@ export const useActionTrayController = ({
     active.value = true;
   }, [
     active,
+    animationTravel,
     contentHeight,
     footerHeight,
     measurements.actions.enableLayout,
     measurements.shared.measuredFooterHeight,
+    resolveClosedTranslateY,
     translateY,
   ]);
 
   const handleCloseSpringFinished = useCallback(() => {
     log("CLOSE SPRING FINISHED — resetting tray state");
-    presentation.actions.clearFullScreenBackground();
-    presentation.actions.resetPresentationMode();
     renderState.actions.clear();
     measurements.actions.reset();
-  }, [
-    measurements.actions.reset,
-    presentation.actions.clearFullScreenBackground,
-    presentation.actions.resetPresentationMode,
-    renderState.actions.clear,
-  ]);
+  }, [measurements.actions.reset, renderState.actions.clear]);
 
   useEffect(() => {
     if (visible) {
@@ -156,13 +195,16 @@ export const useActionTrayController = ({
 
       renderState.actions.showLatestSnapshot();
       measurements.actions.beginOpenMeasurement(!!footer);
-      presentation.actions.applyPresentationMode(
-        fullScreen,
-        fullScreen ? SCREEN_HEIGHT : undefined,
-      );
       log("OPEN — waiting for measurement");
     } else {
-      log("CLOSE START", { renderedTrayId: renderState.state.renderedTrayId });
+      const closeTravel = Math.max(resolveClosedTranslateY(), translateY.value);
+
+      animationTravel.value = closeTravel;
+
+      log("CLOSE START", {
+        renderedTrayId: renderState.state.renderedTrayId,
+        closeTravel,
+      });
 
       const myGeneration = closeGeneration.value + 1;
       closeGeneration.value = myGeneration;
@@ -171,7 +213,7 @@ export const useActionTrayController = ({
       active.value = false;
 
       translateY.value = withSpring(
-        SCREEN_HEIGHT,
+        closeTravel,
         TRAY_SPRING_CONFIG,
         (finished) => {
           if (!finished) {
@@ -217,52 +259,28 @@ export const useActionTrayController = ({
   ]);
 
   useEffect(() => {
-    if (!visible) return;
+    if (!visible) {
+      return;
+    }
 
     if (justOpenedRef.current) {
       justOpenedRef.current = false;
       return;
     }
 
-    const fs = fullScreen;
-    const renderedTrayId = renderState.state.renderedTrayId;
-    const previousContentHeight =
-      measurements.actions.getCachedContentHeight(renderedTrayId) ??
-      contentHeight.value;
-    const nextCachedContentHeight =
-      measurements.actions.getCachedContentHeight(trayId);
-
     log("TRAY CHANGE", {
       trayId,
-      incomingFullScreen: fullScreen,
-      renderedTrayId,
-      renderedFullScreen: renderState.state.renderedFullScreen,
+      renderedTrayId: renderState.state.renderedTrayId,
       contentHeight: contentHeight.value,
       footerHeight: footerHeight.value,
       layoutEnabled: measurements.state.layoutEnabled,
-      previousContentHeight,
-      nextCachedContentHeight,
     });
 
-    presentation.actions.clearFullScreenBackground();
-    measurements.actions.setLayoutAnimationEnabled(!fs);
-
-    if (nextCachedContentHeight !== undefined) {
-      measurements.actions.setCachedContentHeight(trayId);
-    }
-
-    if (fs) {
-      animMinHeight.value = previousContentHeight;
-    }
-
-    presentation.actions.applyPresentationMode(
-      fs,
-      fs ? previousContentHeight : undefined,
-    );
+    measurements.actions.setLayoutAnimationEnabled(true);
     renderState.actions.showLatestSnapshot();
-    // Tray identity changes coordinate the swap, presentation, and layout mode together.
+    // Tray identity changes coordinate the content swap and layout mode together.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trayId, visible, fullScreen]);
+  }, [trayId, visible]);
 
   useEffect(() => {
     if (!visible) {
@@ -277,7 +295,6 @@ export const useActionTrayController = ({
     footer,
     footerClassName,
     footerStyle,
-    fullScreen,
     renderState.actions.syncRenderedNodes,
     trayId,
     visible,
@@ -290,7 +307,6 @@ export const useActionTrayController = ({
 
     log("LIVE STEP PROPS", {
       trayId,
-      fullScreen,
       hasContent: content != null,
       hasFooter: footer != null,
       hasContainerStyle: containerStyle != null,
@@ -305,7 +321,6 @@ export const useActionTrayController = ({
     footer,
     footerClassName,
     footerStyle,
-    fullScreen,
     trayId,
     visible,
   ]);
@@ -314,19 +329,18 @@ export const useActionTrayController = ({
     log("RENDERED CONTENT CHANGED", {
       trayId: renderState.state.renderedTrayId,
       hasContent: renderState.state.renderedContent !== null,
-      fullScreen: renderState.state.renderedFullScreen,
       hasFooter: renderState.state.renderedFooter !== null,
     });
   }, [
     renderState.state.renderedContent,
     renderState.state.renderedFooter,
-    renderState.state.renderedFullScreen,
     renderState.state.renderedTrayId,
   ]);
 
   const handleRequestClose = useCallback(() => {
+    dismissKeyboard();
     onClose?.();
-  }, [onClose]);
+  }, [dismissKeyboard, onClose]);
 
   const imperativeApi = useMemo(
     () => ({
@@ -349,12 +363,6 @@ export const useActionTrayController = ({
       active,
       context,
       hasFooter,
-      animMargin,
-      animRadius,
-      animBottom,
-      animHeight,
-      animMinHeight,
-      animFullScreenBg,
       totalHeight,
       progress,
     },
@@ -366,7 +374,6 @@ export const useActionTrayController = ({
       renderedFooter: renderState.state.renderedFooter,
       renderedContent: renderState.state.renderedContent,
       renderedTrayId: renderState.state.renderedTrayId,
-      renderedFullScreen: renderState.state.renderedFullScreen,
       renderedContainerStyle: renderState.state.renderedContainerStyle,
       renderedClassName: renderState.state.renderedClassName,
       renderedFooterStyle: renderState.state.renderedFooterStyle,

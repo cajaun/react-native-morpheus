@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { LayoutChangeEvent } from "react-native";
 import { useSharedValue, type SharedValue } from "react-native-reanimated";
 import { log } from "./logger";
@@ -22,7 +22,6 @@ export const useActionTrayMeasurements = ({
   const [pendingOpen, setPendingOpen] = useState(false);
 
   const measuredFooterHeight = useSharedValue(0);
-  const contentHeightsByTrayIdRef = useRef(new Map<string, number>());
 
   useEffect(() => {
     if (renderedFooter) {
@@ -74,39 +73,10 @@ export const useActionTrayMeasurements = ({
     setLayoutEnabled(false);
   }, [contentHeight, footerHeight, measuredFooterHeight]);
 
-  const getCachedContentHeight = useCallback((trayId?: string) => {
-    if (!trayId) {
-      return undefined;
-    }
-
-    return contentHeightsByTrayIdRef.current.get(trayId);
-  }, []);
-
-  const setCachedContentHeight = useCallback(
-    (trayId?: string) => {
-      if (!trayId) {
-        return undefined;
-      }
-
-      const cachedHeight = contentHeightsByTrayIdRef.current.get(trayId);
-
-      if (cachedHeight !== undefined) {
-        contentHeight.value = cachedHeight;
-      }
-
-      return cachedHeight;
-    },
-    [contentHeight],
-  );
-
   const handleContentLayout = useCallback(
     (e: LayoutChangeEvent) => {
       const height = e.nativeEvent.layout.height;
       contentHeight.value = height;
-
-      if (renderedTrayId !== undefined) {
-        contentHeightsByTrayIdRef.current.set(renderedTrayId, height);
-      }
 
       if (!contentMeasured && renderedTrayId !== undefined) {
         setContentMeasured(true);
@@ -169,8 +139,6 @@ export const useActionTrayMeasurements = ({
       completePendingOpen,
       prepareForClose,
       reset,
-      getCachedContentHeight,
-      setCachedContentHeight,
     },
     handlers: {
       handleContentLayout,
