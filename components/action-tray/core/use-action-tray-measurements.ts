@@ -6,7 +6,7 @@ import { log } from "./logger";
 type Params = {
   contentHeight: SharedValue<number>;
   footerHeight: SharedValue<number>;
-  measurementTrayId?: string;
+
   renderedTrayId?: string;
   renderedFooter?: React.ReactNode;
   resolveContentHeight?: (measuredHeight: number) => number;
@@ -20,7 +20,6 @@ type Params = {
 export const useActionTrayMeasurements = ({
   contentHeight,
   footerHeight,
-  measurementTrayId,
   renderedTrayId,
   renderedFooter,
   resolveContentHeight,
@@ -86,32 +85,30 @@ export const useActionTrayMeasurements = ({
     setLayoutEnabled(false);
   }, [contentHeight, footerHeight, measuredContentHeight, measuredFooterHeight]);
 
-  const handleContentLayout = useCallback(
+    const handleContentLayout = useCallback(
     (e: LayoutChangeEvent) => {
       const height = e.nativeEvent.layout.height;
       const resolvedHeight = resolveContentHeight
         ? resolveContentHeight(height)
         : height;
-      const resolvedTrayId = measurementTrayId ?? renderedTrayId;
 
       measuredContentHeight.value = height;
       contentHeight.value = resolvedHeight;
-      onContentHeightResolved?.(resolvedHeight, height, resolvedTrayId);
+      onContentHeightResolved?.(resolvedHeight, height, renderedTrayId);
 
-      if (!contentMeasured && resolvedTrayId !== undefined) {
+      if (!contentMeasured && renderedTrayId !== undefined) {
         setContentMeasured(true);
       }
 
       log("CONTENT onLayout", {
         height,
         resolvedHeight,
-        trayId: resolvedTrayId,
+        trayId: renderedTrayId,
       });
     },
     [
       contentHeight,
       contentMeasured,
-      measurementTrayId,
       measuredContentHeight,
       onContentHeightResolved,
       renderedTrayId,

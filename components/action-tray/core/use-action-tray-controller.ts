@@ -56,7 +56,7 @@ export const useActionTrayController = ({
 }: Params) => {
   const { bottom } = useSafeAreaInsets();
   const contentHeightCacheRef = useRef<Record<string, number>>({});
-  const lastResolvedContentTrayIdRef = useRef<string | undefined>(trayId);
+
 
   const translateY = useSharedValue(SCREEN_HEIGHT);
   const contentHeight = useSharedValue(0);
@@ -105,12 +105,11 @@ export const useActionTrayController = ({
   const measurements = useActionTrayMeasurements({
     contentHeight,
     footerHeight,
-    measurementTrayId: visible ? trayId : undefined,
     renderedTrayId: renderState.state.renderedTrayId,
     renderedFooter: renderState.state.renderedFooter,
     resolveContentHeight: resolveRenderedContentHeight,
     onContentHeightResolved: (resolvedHeight, _measuredHeight, nextTrayId) => {
-      lastResolvedContentTrayIdRef.current = nextTrayId;
+
 
       if (!nextTrayId) {
         return;
@@ -133,18 +132,12 @@ export const useActionTrayController = ({
       return;
     }
 
-    if (
-      lastResolvedContentTrayIdRef.current !== renderState.state.renderedTrayId
-    ) {
-      return;
-    }
 
     contentHeight.value = resolveRenderedContentHeight(
       measurements.shared.measuredContentHeight.value,
     );
   }, [
     contentHeight,
-    renderState.state.renderedTrayId,
     measurements.shared.measuredContentHeight,
     resolveRenderedContentHeight,
     visible,
@@ -252,7 +245,6 @@ export const useActionTrayController = ({
     log("CLOSE SPRING FINISHED — resetting tray state");
     translateY.value = SCREEN_HEIGHT;
     animationTravel.value = SCREEN_HEIGHT;
-    lastResolvedContentTrayIdRef.current = undefined;
     renderState.actions.clear();
     measurements.actions.reset();
   }, [
@@ -358,20 +350,13 @@ export const useActionTrayController = ({
       layoutEnabled: measurements.state.layoutEnabled,
     });
 
-    if (trayId) {
+      if (trayId) {
       const cachedHeight = contentHeightCacheRef.current[trayId];
-      const hasFreshMeasurement =
-        lastResolvedContentTrayIdRef.current === trayId;
 
       if (!fullScreen && cachedHeight != null) {
         contentHeight.value = cachedHeight;
-      } else if (
-        hasFreshMeasurement &&
-        measurements.shared.measuredContentHeight.value > 0
-      ) {
-        contentHeight.value = resolveRenderedContentHeight(
-          measurements.shared.measuredContentHeight.value,
-        );
+      } else if (measurements.shared.measuredContentHeight.value > 0) {
+        contentHeight.value = measurements.shared.measuredContentHeight.value;
       }
     }
 
